@@ -1,0 +1,1933 @@
+/* NDA Detailing — tokens per 00 - Source of Truth/design-direction.md */
+:root{
+  /* primitives — every color sourced (production-rules #56) */
+  --nda-black:#0a0a0a;        /* sampled: his black cars / night shots (logo pkg) */
+  --nda-black-raised:#111312; /* derived: black lifted one step */
+  --nda-paint-white:#eeffff;  /* sampled: Nov 24 2025 highlight (logo pkg) */
+  --nda-wine:#3d1119;         /* W03 deep cellar — LOCKED by Fahad 2026-08-06 (wine-lab); derived from the RED 10 anchor family */
+  --nda-wine-anchor:#491f27;  /* derived: W03 lifted one step — display/linework */
+  --nda-wine-lift:#947c80;    /* derived lift — 5.1:1 on black (computed) — small-text accent */
+  --nda-mist:#aab6b6;         /* derived — 9.5:1 on black (computed) */
+  --nda-caption:#78807f;      /* derived — 4.7:1 on black (computed) */
+  --nda-line:#1f1f1f;
+
+  --font-display:'Anton',sans-serif;
+  /* BODY = GEORGIA (Fahad's pick, type round 2026-08-22), replacing Archivo.
+     A serif now carries every word on the site that is not a heading, a price
+     or a caption — those stay Anton and Plex Mono.
+
+     GELASIO IS NOT A SECOND CHOICE, IT IS THE SHIPPING HALF OF THIS PICK.
+     Georgia is licensed with Windows/macOS/iOS, NOT for web embedding, and it
+     is NOT on Android — which for a local detailing shop is a large part of the
+     phone traffic. Gelasio is Georgia's metric-compatible open clone (same
+     widths, same vertical metrics), so the two are interchangeable without a
+     single line re-wrapping. Georgia is first, so anyone who has it renders the
+     real thing with its native hinting AND NEVER DOWNLOADS GELASIO — webfonts
+     are fetched on demand, so the fallback costs nothing to the majority who
+     never reach it. Everyone else gets a face they cannot tell apart.
+     Do not reorder these: Gelasio first would download for every visitor and
+     replace a locally-hinted face with a webfont for no gain. */
+  --font-body:Georgia,'Gelasio',serif;
+  --font-fact:'IBM Plex Mono',monospace;
+  --text-sm:12px; --text-md:16px; --text-lg:21px; --text-xl:28px;
+  --text-2xl:38px; --text-3xl:50px; --text-hero:clamp(44px,13vw,150px);
+
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px;
+  --space-6:40px; --space-7:64px; --space-8:104px; --space-9:160px;
+  --radius:0;
+
+  /* semantic */
+  --color-surface:var(--nda-black);
+  --color-surface-raised:var(--nda-black-raised);
+  --color-text:var(--nda-paint-white);
+  --color-text-muted:var(--nda-mist);
+  --color-caption:var(--nda-caption);
+  --color-accent:var(--nda-wine);
+  --color-accent-display:var(--nda-wine-anchor);
+  --color-accent-text:var(--nda-wine-lift);
+  --color-on-accent:var(--nda-paint-white);
+  --color-border:var(--nda-line);
+  --color-ring:var(--nda-wine-lift);
+
+  /* component */
+  --nav-height:64px;
+  --bookbar-height:52px;
+  /* The menu reference's CustomEase "main", which is a plain cubic-bezier
+     and so needs no library to express (2026-08-21). */
+  --nav-ease:cubic-bezier(.65,.01,.05,.99);
+  /* The heading scale kept from the reverted ZEF round (Fahad, 2026-08-21:
+     "I like the size of the words tho"). Shared by every page's own name and
+     by the home page's section heads, so the two cannot drift. */
+  --text-page:clamp(40px,8.4vw,96px);
+  /* Services' sub-list geometry. BOTH ARE MEASURED, not chosen.
+
+     --navmenu-indent lines the six services up with the left edge of the
+     display word above them: the link's own padding-left (12) plus the
+     ordinal's rendered width plus the flex gap (16). Measured 2026-08-21 at
+     1280x800 the ordinal renders 16.32px, so 12 + 16.32 + 16 = 44.32 -> 44px,
+     and the sub-list's left edge then sits at exactly the same 44px from the
+     item as the display word's.
+
+     --navmenu-sub-h is a max-height CEILING for the open transition, not the
+     height the list takes. It has to sit ABOVE the natural height or the last
+     service is clipped, but not far above: max-height eases toward the
+     CEILING, so too much slack finishes the visible motion early and then
+     waits.
+
+     RE-MEASURED 2026-08-22 when the six moved from 12px mono to Anton (see
+     `.navmenu-sublink`). Natural height went 228 -> 265 at 1280, so the old
+     280 stopped being a ceiling with room in it — and before the line-height
+     was tightened it was 324, i.e. **the cap was clipping HEADLIGHT
+     RESTORATION outright**. 308 restores the same shape of slack the 280
+     carried: 43px, which is exactly one more row at the new size, so a service
+     name that ever wraps to two lines still opens fully.
+
+     Re-measure BOTH if the ordinal's size, the flex gap, the number of
+     services, or the sublinks' font/size/line-height changes. This token has
+     now been invalidated twice by a change that looked purely typographic. */
+  --navmenu-indent:44px;
+  --navmenu-sub-h:308px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{background:var(--color-surface);color:var(--color-text);font-family:var(--font-body);font-size:var(--text-md);line-height:1.6}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+::selection{background:var(--color-accent);color:var(--color-on-accent)}
+:focus-visible{outline:2px solid var(--color-ring);outline-offset:2px}
+
+/* nav */
+/* NO BAR BEHIND THE LOGO (Fahad 2026-08-21: "remove this black tab at the top").
+   The tinted ground, the 8px backdrop blur and the bottom rule are all gone; the
+   lockup and the menu button now float straight on the page.
+
+   `pointer-events:none` IS NOT OPTIONAL HERE, AND IT IS THE WHOLE BUG THIS
+   CHANGE INVITES. Losing the background does not lose the BOX: this is still a
+   fixed, full-width, 64px-tall element sitting over the top of every page, so
+   without this it would go on swallowing every click and hover across that strip
+   with nothing drawn to explain why. The two real controls take events back
+   below. A transparent overlay that still eats input is invisible in a
+   screenshot and obvious to a visitor.
+
+   THE MENU STILL MOVES TO <body> IN main.js, AND THE REASON HAS CHANGED RATHER
+   THAN GONE. It moved because `backdrop-filter` made this element the
+   containing block for its own fixed descendants; that filter is now deleted,
+   so the move is no longer forced — but it is still correct, and it is what
+   keeps the panel independent of whatever this bar is or is not painting. Do
+   not "simplify" it away on the grounds that the filter is gone. */
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;height:var(--nav-height);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 var(--space-5);pointer-events:none}
+.nav .lockup,.nav .nav-right,.nav .navmenu{pointer-events:auto}
+.nav .lockup{display:flex;align-items:center;gap:var(--space-3);justify-self:start}
+.nav .lockup img{height:34px;width:auto}
+/* THE MARKS CARRY THEIR OWN LEGIBILITY NOW THAT NOTHING IS BEHIND THEM, AND
+   THIS IS NOT DECORATION — IT IS THE COST OF DELETING THE BAR. Measured on
+   portfolio-audi with the nav hidden: as the galleries scroll under the strip,
+   the ground behind the wordmark reaches a mean of 164 and a 95th percentile of
+   230, and the menu bars see 208. A white mark on a 230 ground is about 1.1:1 —
+   it is not dim, it is GONE, and only on the pages that are mostly photographs.
+   The old black tab was hiding this.
+
+   A RIM, NOT A GLOW, AND NOT A SCRIM. The fill cannot be made to contrast with
+   an arbitrary photograph, so the mark is OUTLINED instead: a tight, nearly
+   opaque dark shadow draws an edge the glyph keeps against any ground, with a
+   wider soft one under it for separation. This is the subtitle technique. A
+   gradient scrim across the top would also work and was rejected — it is a
+   softer version of the exact black tab that was asked to go.
+
+   DELIBERATE DEVIATION FROM THE MATTE CONTRACT. design-direction.md bans
+   shadows; that ban is about ELEVATION — cards and surfaces pretending to float.
+   This is legibility on an unknown ground, and there is no elevation being
+   implied. Same class of ruled exception as the phone deck's square controls. */
+.nav .lockup img,.navbtn-bars i{
+  filter:drop-shadow(0 0 2px rgba(0,0,0,.9)) drop-shadow(0 1px 7px rgba(0,0,0,.65))}
+.nav-right{display:flex;align-items:center;gap:var(--space-3);justify-self:end;font-family:var(--font-fact);font-size:var(--text-sm);letter-spacing:.08em;text-transform:uppercase}
+/* The BOOK A SLOT chip left the bar 2026-08-21 — the contact dock carries
+   booking now, on every screen size, so a second always-on booking control in
+   the corner was the same job done twice. */
+
+/* ===================================================================
+   THE FULL-SCREEN MENU (Fahad, 2026-08-21, from a React/GSAP/shadcn
+   reference — "sterling gate kinetic navigation").
+
+   PORTED TO VANILLA, NOT INSTALLED. Same call as coverflow.js, the phone
+   deck and ZEF's soft-glow buttons: this site is static HTML from
+   generate.py, so React, Tailwind, shadcn and TypeScript would mean
+   rebuilding all 25 pages as a Next app to gain one menu.
+
+   GSAP IS NOT USED AND IS NOT NEEDED HERE, which is a judgement rather
+   than an omission. The reference's whole motion vocabulary maps onto
+   native CSS: its CustomEase "0.65, 0.01, 0.05, 0.99" is a plain
+   cubic-bezier (CustomEase only earns its weight on multi-segment eases
+   that a bezier cannot express), its timeline staggers are transition
+   delays off a --i index, and back.out(1.7) is a bezier overshoot. What
+   is left is one class toggle, which is also what makes it survive a
+   stalled rAF -- the same reason the phone deck is CSS transitions.
+
+   SKIN IS NDA'S, NOT THE REFERENCE'S. The source ships indigo, violet
+   and pink on soft blurred blobs; this site is matte black, wine W03,
+   radius 0, and design-direction is explicit that bars and brand
+   surfaces stay matte and sharp. So there are no glows and no gradients
+   here, and the per-item response is a WINE REDACTION BAR -- the form
+   the approved logo is built from (Concept A, "The Redaction") -- rather
+   than an abstract shape set that would read as templated.
+
+   NO PHOTOGRAPHY IN THE MENU, DELIBERATELY. Real work would be the
+   obvious NDA answer to the reference's blobs, but the brief records a
+   dedicated plate pass as a LAUNCH GATE and the inventory's plate flags
+   have proven false negatives three times. Five new photo surfaces on a
+   site-wide element is a decision to take on its own evidence, not a
+   side effect of a menu change.
+   =================================================================== */
+
+/* --- Presentation 1: NO JS. The ordinary centred bar, unchanged from
+   what shipped before this. The overlay parts are inert here, so the
+   links are always reachable (production-rules #31). --- */
+/* .navmenu-sub is hidden here too: in the no-JS bar there is no hover panel
+   to open into, and Services still links to the hub page that lists all six. */
+.navmenu-scrim,.navmenu-layers,.navmenu-num,.navmenu-sub{display:none}
+.navmenu-list{display:flex;gap:var(--space-5);list-style:none;
+  font-family:var(--font-fact);font-size:var(--text-sm);letter-spacing:.08em;
+  text-transform:uppercase}
+.navmenu-link{display:block;color:var(--color-text-muted);padding:var(--space-2) 0}
+.navmenu-link:hover,.navmenu-link[aria-current]{color:var(--color-text)}
+.navbtn{display:none}
+@media(max-width:760px){
+  /* Without JS a phone cannot open anything, so the links drop to their own
+     ROW under the logo rather than vanishing behind a button that does
+     nothing. The bar has to give up its fixed 64px height to do it: five
+     links plus the booking chip cannot share one 707px row, and the middle
+     grid column simply overflowed into the chip ("PRICING" sat underneath
+     it). Scoped to :not(.navlive) so the live header is untouched.
+
+     Worth recording: the version this replaces hid the links entirely at
+     this width and put them behind a JS-only toggle, so a no-JS phone had
+     NO navigation at all. That was a standing rule-31 breach, and it was
+     invisible because nobody browses this site with JS off. */
+  html:not(.navlive) .nav{height:auto;grid-template-columns:1fr auto;
+    grid-template-areas:"logo right" "menu menu";row-gap:var(--space-2);
+    padding-top:var(--space-2);padding-bottom:var(--space-3)}
+  html:not(.navlive) .nav .lockup{grid-area:logo}
+  html:not(.navlive) .nav-right{grid-area:right}
+  html:not(.navlive) .navmenu{grid-area:menu}
+  html:not(.navlive) .navmenu-list{flex-wrap:wrap;gap:var(--space-3) var(--space-4);
+    justify-content:center}
+}
+
+/* --- Presentation 2: LIVE. main.js adds html.navlive once it has wired
+   the button, so the button and the overlay appear together and neither
+   can exist without the other. --- */
+/* 44x44 WITH NO VISIBLE BOX. The bordered pill went with the bar it sat on;
+   what is left is the icon. The button keeps a 44px square anyway because that
+   is the touch target — three 2px lines are a 16px-tall thing to hit, and
+   shrinking the control to fit the art is how icon-only buttons become
+   unusable on a phone. */
+.navlive .navbtn{display:inline-flex;align-items:center;justify-content:center;
+  background:none;border:0;color:var(--color-text);
+  width:44px;height:44px;margin-right:calc(var(--space-2) * -1);cursor:pointer}
+/* The label is for assistive tech only; the swap block is the visible
+   text. One <button>, one accessible name, updated by main.js. */
+.navlive .navbtn-label{position:absolute;width:1px;height:1px;overflow:hidden;
+  clip-path:inset(50%);white-space:nowrap}
+/* THREE LINES THAT FOLD INTO AN X (Fahad 2026-08-21). This replaces BOTH the
+   MENU/CLOSE word-swap and the rotating plus — the reference's word flip needed
+   a word, and there is no longer one.
+
+   THE BARS ARE THE STATE, WHICH IS WHY THEY ANIMATE RATHER THAN SWAP. An
+   icon-only button that looks identical open and closed gives a mouse user no
+   way to tell what pressing it will do. Top and bottom rotate onto the centre
+   line; the middle fades. Both bars translate to the middle FIRST and rotate
+   after, or they sweep through an arc and read as a spin.
+
+   TRANSFORM-ORIGIN IS CENTRE ON ALL THREE and the bars are positioned rather
+   than stacked in flow: rotating a flex child about its own box leaves the two
+   strokes crossing off-centre, which is the difference between an X and a
+   scribble. */
+.navlive .navbtn-bars{display:block;position:relative;width:22px;height:16px}
+.navlive .navbtn-bars i{position:absolute;left:0;width:100%;height:2px;
+  background:currentColor;
+  transition:transform .34s var(--nav-ease),opacity .2s linear}
+.navlive .navbtn-bars i:nth-child(1){top:0}
+.navlive .navbtn-bars i:nth-child(2){top:7px}
+.navlive .navbtn-bars i:nth-child(3){top:14px}
+.navlive .navbtn:hover .navbtn-bars i{background:var(--nda-wine-lift)}
+.navlive .navbtn[aria-expanded="true"] .navbtn-bars i:nth-child(1){
+  transform:translateY(7px) rotate(45deg)}
+.navlive .navbtn[aria-expanded="true"] .navbtn-bars i:nth-child(2){opacity:0}
+.navlive .navbtn[aria-expanded="true"] .navbtn-bars i:nth-child(3){
+  transform:translateY(-7px) rotate(-45deg)}
+@media(prefers-reduced-motion:reduce){.navlive .navbtn-bars i{transition:none}}
+
+/* THE BAR OUTRANKS THE MENU, AND THAT IS THE POINT. The panel is z60 and
+   covers the page; the nav goes to z70 so the CLOSE button stays on screen
+   and clickable while the menu is open. Shipped once with the nav at 50 and
+   the button was painted over by the panel that its own press had opened —
+   leaving Escape and the scrim as the only ways out, and the scrim is fully
+   covered on a phone where the panel is 100% wide. The BOOK A SLOT chip
+   rides up with it, which is deliberate: booking is the site's one job and
+   must not need the menu closed first. The mobile bookbar goes with them for
+   the same reason, and the panel already reserves its height in padding. */
+.navlive .nav{z-index:70;grid-template-columns:1fr auto}
+/* The dock rides above the open menu on EVERY size, where the bookbar it
+   replaced only did so under 760px — because the bookbar only existed under
+   760px. Same ruling, wider reach: contacting the shop must never require
+   closing the menu first. */
+.navlive .dock{z-index:70}
+/* TWO COLUMNS ONCE LIVE, NOT THREE. The bar's `1fr auto 1fr` existed to
+   centre the links between the logo and the right-hand group. Live, the menu
+   has left the bar for <body>, so only two children remain: they filled
+   columns 1 and 2 and left the third 1fr standing empty, parking the booking
+   chip and the menu button ~74px short of the right edge with nothing after
+   them. A grid keeps its declared tracks whether or not anything is in them.
+   :not(.navlive) still gets the three-column centred bar, unchanged. */
+.navlive .navmenu{position:fixed;inset:0;z-index:60;visibility:hidden;
+  pointer-events:none}
+.navlive .navmenu.is-open{visibility:visible;pointer-events:auto}
+.navlive .navmenu-scrim{display:block;position:absolute;inset:0;
+  background:color-mix(in srgb,var(--nda-black) 72%,transparent);
+  opacity:0;transition:opacity .5s var(--nav-ease)}
+.navlive .navmenu.is-open .navmenu-scrim{opacity:1}
+
+/* The panel and its layers. Three layers arriving 120ms apart is the
+   reference's signature: the menu reads as several sheets landing rather
+   than one box appearing. Wine first so the black settles on top of it.
+
+   THE PANEL DOES NOT SLIDE ON THE WAY IN, AND THAT IS THE WHOLE REVEAL.
+   It jumps to its place and the LAYERS wipe across it; on the way out the
+   whole panel leaves. That asymmetry is the reference's (`.set(menu,
+   {xPercent:0})` on open against `.to(menu, {xPercent:120})` on close) and
+   it is load-bearing, not a detail:
+
+   Shipped first with the panel sliding in over .6s WHILE the words rose
+   over .7s, and Fahad's read was that the words were not animating at all.
+   They were — but a word travelling up inside a box that is itself
+   travelling left has almost no motion relative to the box, so the two
+   cancel and the eye sees one solid slab arrive. Motion is only legible
+   against something that is holding still. The panel now holds still and
+   the words move against it. */
+/* THE LIST STARTS UNDER THE BAR, IT IS NOT CENTRED (Fahad, 2026-08-21:
+   "there is some whitespace above home, remove that"). Centring five items
+   in an 800px panel put 147px of dead black above the first one and 147px
+   below the last; the gap above reads as the menu having failed to fill,
+   because the bar above it gives the eye a top edge to measure against and
+   nothing does that at the bottom. Top-aligned, the only space above HOME is
+   the 24px that keeps its hairline off the bar's bottom border — two rules
+   any closer than that read as one thick line. */
+.navlive .navmenu-panel{position:absolute;top:0;right:0;bottom:0;
+  width:min(560px,100%);display:flex;flex-direction:column;justify-content:flex-start;
+  padding:calc(var(--nav-height) + var(--space-5)) var(--space-6) var(--space-6);
+  transform:translateX(120%);transition:transform .6s var(--nav-ease)}
+/* duration 0 on the way IN only; the closed rule above still owns the .6s
+   exit, because on close the element is matched by that rule again. */
+.navlive .navmenu.is-open .navmenu-panel{transform:translateX(0);
+  transition-duration:0s}
+.navlive .navmenu-layers{display:block;position:absolute;inset:0;z-index:-1;
+  overflow:hidden}
+/* Keyframes here for the same reason as the words: these sheets are inside
+   the visibility:hidden overlay until the frame that opens it, so a
+   transition has no committed before-style to run from. */
+@keyframes navsheet-in{
+  from{transform:translateX(101%)}
+  to{transform:translateX(0)}
+}
+.navlive .navmenu-layers i{position:absolute;inset:0;transform:translateX(101%)}
+.navlive .navmenu-layers i:nth-child(1){background:var(--nda-wine)}
+.navlive .navmenu-layers i:nth-child(2){background:var(--nda-wine-anchor)}
+.navlive .navmenu-layers i:nth-child(3){background:var(--nda-black);
+  border-left:1px solid var(--color-border)}
+.navlive .navmenu.is-open .navmenu-layers i{
+  animation:navsheet-in .575s var(--nav-ease) both}
+.navlive .navmenu.is-open .navmenu-layers i:nth-child(2){animation-delay:.06s}
+.navlive .navmenu.is-open .navmenu-layers i:nth-child(3){animation-delay:.12s}
+
+/* [BUG, PRE-EXISTING, FIXED 2026-08-22] THE MENU RAN OFF THE BOTTOM OF SHORT
+   PHONES AND HAD NO WAY BACK. CLAUDE.md's "a sixth menu item fits" measurement
+   recorded the list ending at 492px against a 600px floor — and it was true when
+   it was taken. It stopped being true when Services grew its seven sub-links
+   inline (that item alone is now 343px tall), and nothing re-measured. Proved by
+   hiding the new FAQ item and re-reading: at 390x667 the SIX-item menu already
+   ended at 764px against a 667px viewport — 97px of it, including PRICING,
+   unreachable behind a panel with `overflow-y: visible`. The seventh item takes
+   it to 832 (165px over), which is how it was found, not what caused it.
+
+   THE LIST SCROLLS, NOT THE PANEL, AND THAT DISTINCTION IS LOAD-BEARING.
+   `.navmenu-layers` — the three sliding sheets that ARE the panel's background,
+   since the panel itself is transparent — lives inside the panel at
+   `position:absolute; inset:0`. Scrolling the panel resolves that against the
+   padding box and drags the background up with the content, so the menu would
+   scroll its own backdrop away and show the page through it. Making the LIST the
+   scroll container leaves the sheets pinned.
+
+   `min-height:0` IS NOT OPTIONAL. A flex item defaults to `min-height:auto`,
+   which refuses to shrink below its content — which is precisely why the list
+   was overflowing instead of scrolling in the first place. Without it,
+   `overflow-y:auto` is inert here.
+
+   The bottom padding clears the CONTACT DOCK, which is fixed over the panel at
+   z55/z70 — without it the last item scrolls to the bottom and stops underneath
+   the dock, which is the same unreachable state in a different costume. */
+.navlive .navmenu-list{display:flex;flex-direction:column;gap:0;
+  font-family:var(--font-display);font-size:inherit;letter-spacing:0;
+  text-transform:uppercase;
+  flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+  padding-bottom:calc(var(--bookbar-height) + var(--space-5))}
+/* A scrollbar on the wine sheet is louder than the thing it scrolls, and the
+   list only overflows on short screens. Keep the affordance, mute the chrome:
+   overlay scrollbars on phones are invisible anyway, and the list is reachable
+   by touch, wheel and keyboard regardless. */
+.navlive .navmenu-list{scrollbar-width:thin;scrollbar-color:var(--nda-wine-lift) transparent}
+.navlive .navmenu-item{border-top:1px solid var(--color-border)}
+.navlive .navmenu-item:last-child{border-bottom:1px solid var(--color-border)}
+.navlive .navmenu-link{position:relative;display:flex;align-items:baseline;
+  gap:var(--space-4);padding:var(--space-4) var(--space-3);color:var(--color-text);
+  overflow:hidden}
+.navlive .navmenu-num{display:block;font-family:var(--font-fact);
+  font-size:var(--text-sm);letter-spacing:.08em;color:var(--color-accent-text);
+  position:relative;z-index:1;transition:color .4s var(--nav-ease)}
+/* The mask is what makes the rise read as a rise: the text travels inside
+   a clipped box, entering from under its own baseline. */
+.navlive .navmenu-mask{display:block;overflow:hidden;position:relative;z-index:1}
+.navlive .navmenu-text{display:block;font-size:clamp(30px,6.4vw,52px);
+  line-height:1.06;font-weight:400;
+  transform:translateY(140%) rotate(10deg);transform-origin:left top}
+/* THE WORDS WAIT FOR THE SHEETS TO LAND, THEN RISE ONE AFTER ANOTHER.
+   0.35s lead-in plus 0.05s per item, which is the reference's timeline
+   exactly (its links sit at "<+=0.35" with stagger 0.05, against sheets
+   that take 0.575s).
+
+   A KEYFRAME ANIMATION, NOT A TRANSITION, AND THAT IS THE FIX FOR "the
+   words are still not moving" (Fahad, twice). A transition needs the
+   browser to have committed a "before" style to interpolate FROM. These
+   words live inside `.navmenu`, which is `visibility:hidden` until the
+   same style change that opens it — so the before-style and the
+   after-style arrive in one frame on a subtree that was not being
+   rendered, and the rise is entitled to be dropped. It was: the
+   transitions existed and reported `running`, which is why every check
+   here passed while nothing moved on screen.
+
+   An animation has no such dependency. Applying it starts it from its own
+   `from` keyframe regardless of what the element was doing before, which
+   is the whole reason entrances from a hidden state are written this way.
+   `both` holds the `from` pose through the delay and the `to` pose after,
+   so nothing flashes at either end.
+
+   It is declared ONLY in the open state, so removing `.is-open` drops the
+   animation and the word snaps back to the resting rule above — invisible,
+   because the panel is sliding out over it, and faithful to the reference,
+   which plays no link animation on close. */
+@keyframes navword-rise{
+  from{transform:translateY(140%) rotate(10deg)}
+  to{transform:translateY(0) rotate(0)}
+}
+.navlive .navmenu.is-open .navmenu-text{
+  animation:navword-rise .7s var(--nav-ease) both;
+  animation-delay:calc(.35s + var(--i) * .05s)}
+/* ---- THE WORDS FLIP ON HOVER (Fahad, 2026-08-21, after three rounds:
+   "All Im seeing is the purple colour coming on it").
+
+   That sentence is what finally located this. The wine bar was the ONLY
+   thing responding to the pointer — the words themselves sat still, so
+   hovering an item read as a coloured block arriving and nothing else. Every
+   round before this fixed the ENTRANCE animation (the rise when the menu
+   opens), which was never what "the words changing/flipping" described.
+
+   Ported from ZEF's `.hsl` letter-swap, which Fahad approved there on
+   2026-08-20, so this is a treatment he has already ruled on rather than a
+   new invention. Each character is two stacked copies in one clipped box:
+   the resting copy rolls up and out, its duplicate arrives from below, 25ms
+   apart down the word so it reads as a wave.
+
+   IT COMPOSES WITH THE ENTRANCE RATHER THAN FIGHTING IT. The rise animates
+   `.navmenu-text` (the whole block, on open); this animates the letters
+   INSIDE it (on hover). Different elements, different triggers, so they can
+   run together or apart without either cancelling the other.
+
+   `overflow:hidden` on each character box is what makes it a flip rather
+   than a slide — without it the outgoing and incoming copies are both
+   visible above and below the line at once. `vertical-align:top` keeps the
+   inline-blocks on one baseline; Anton's ascenders otherwise push each box
+   to a different height and the row goes ragged. ---- */
+.navlive .nsw-w{display:inline-block;white-space:nowrap}
+.navlive .nsw-ch{position:relative;display:inline-block;overflow:hidden;
+  vertical-align:top}
+.navlive .nsw-ch .l1,.navlive .nsw-ch .l2{display:inline-block;
+  transition:transform .34s var(--nav-ease) calc(var(--c,0) * 25ms)}
+.navlive .nsw-ch .l1{transform:translateY(0)}
+.navlive .nsw-ch .l2{position:absolute;left:0;top:0;transform:translateY(110%)}
+.navlive .navmenu-link:hover .nsw-ch .l1,
+.navlive .navmenu-link:focus-visible .nsw-ch .l1{transform:translateY(-110%)}
+.navlive .navmenu-link:hover .nsw-ch .l2,
+.navlive .navmenu-link:focus-visible .nsw-ch .l2{transform:translateY(0)}
+/* Without JS the bar shows the plain label, so the duplicate layer must not
+   print underneath it; same under reduced motion, where nothing flips. */
+.nsw-ch .l2{display:none}
+.navlive .nsw-ch .l2{display:inline-block}
+@media(prefers-reduced-motion:reduce){
+  .navlive .nsw-ch .l1,.navlive .nsw-ch .l2{transition:none}
+  .navlive .nsw-ch .l2{display:none}
+  .navlive .navmenu-link:hover .nsw-ch .l1,
+  .navlive .navmenu-link:focus-visible .nsw-ch .l1{transform:none}
+}
+
+/* ---- SERVICES OPENS ITS SIX (Fahad, 2026-08-21: "when you move your mouse
+   on services, it should show all 6 services").
+
+   THE REVEAL HANGS OFF THE <li>, NOT THE <a>, and that is the load-bearing
+   part. The sub-list is inside the item, so :hover stays true the whole way
+   as the pointer travels from the word down onto a service. Hang it off the
+   link instead and the panel closes the moment the pointer sets off toward
+   the thing it is meant to reach — the lesson ZEF's `.hsl-group` records,
+   arrived at there by getting it wrong first.
+
+   IT OPENS DOWNWARD, WHICH IS SAFE HERE AND WAS NOT ON ZEF. ZEF pushed its
+   sub-options sideways because opening down would have shoved six services
+   under a travelling pointer. Here the pointer is ON Services when it
+   expands and the three items below move AWAY from it, never under it.
+
+   THE LINKS STAY FOCUSABLE WHILE COLLAPSED, on purpose. Collapsing with
+   max-height + overflow (rather than visibility or display) keeps them in
+   the tab order, so a keyboard user simply tabs into the group and
+   :focus-within opens it around them. Hiding them properly would need a
+   button and a disclosure pattern, which is a heavier control than a hover
+   list of six links deserves — and the focus trap in main.js picks them up
+   either way, since it queries a[href] inside the menu. ---- */
+.navlive .navmenu-sub{display:block;list-style:none;overflow:hidden;
+  max-height:0;opacity:0;
+  /* Indent to the display text's own left edge, past the ordinal column, so
+     the six read as belonging to the word above them rather than starting a
+     new list. --navmenu-indent is measured, see the token's own note. */
+  padding-left:var(--navmenu-indent);
+  transition:max-height .55s var(--nav-ease),opacity .35s var(--nav-ease)}
+.navlive .navmenu-item.has-sub:hover .navmenu-sub,
+.navlive .navmenu-item.has-sub:focus-within .navmenu-sub{max-height:var(--navmenu-sub-h);
+  opacity:1}
+/* THE SIX TAKE THE MENU'S OWN FACE (Fahad 2026-08-22: "can you make these on
+   the nav bar > Services the same font as well"). They were the fact layer's
+   mono at 12px, which read as a caption hanging off the word rather than as
+   six more destinations.
+   SIZE, NOT FAMILY, IS WHAT KEEPS THEM SUBORDINATE. The parent word is Anton
+   at clamp(30,6.4vw,52); these are Anton at clamp(17,2.4vw,22) — the same
+   voice, plainly one rank down. Matching the parent's size would make Services
+   look like six top-level items that happen to be indented.
+   TRACKING DROPS .08em -> .02em WITH THE FAMILY. The .08 was there because
+   IBM Plex Mono at 12px caps needs opening up; Anton is condensed with tight
+   sidebearings by design, and .08em on it reads as letter-spaced rather than
+   as set. */
+.navlive .navmenu-sublink{display:block;font-family:var(--font-display);
+  font-size:clamp(17px,2.4vw,22px);letter-spacing:.02em;text-transform:uppercase;
+  /* 1.15, because the body's 1.6 is leading for READING and these are display
+     caps. Left inherited it made every row 53px tall and pushed the list to
+     324px — past its own max-height ceiling, clipping HEADLIGHT RESTORATION. */
+  line-height:1.15;
+  color:var(--color-text-muted);padding:9px var(--space-3) 9px 0;
+  border-top:1px solid var(--color-border);
+  transition:color .25s var(--nav-ease),padding-left .25s var(--nav-ease)}
+.navlive .navmenu-sub li:first-child .navmenu-sublink{border-top:0}
+.navlive .navmenu-sublink:hover,.navlive .navmenu-sublink:focus-visible{
+  color:var(--color-text);padding-left:var(--space-3)}
+.navlive .navmenu-sublink:focus-visible{outline:2px solid var(--color-ring);
+  outline-offset:-2px}
+/* A device with no hover cannot open this, and a menu that hides six pages
+   behind a gesture it does not have is just six missing pages. They stand
+   open there, and the tap targets grow to the 44px floor. */
+@media (hover:none){
+  .navlive .navmenu-sub{max-height:none;opacity:1;transition:none}
+  .navlive .navmenu-sublink{padding-top:13px;padding-bottom:13px}
+}
+@media(prefers-reduced-motion:reduce){
+  .navlive .navmenu-sub,.navlive .navmenu-sublink{transition:none}
+}
+
+/* THE REDACTION BAR — the per-item response, in place of the reference's
+   abstract shapes. It wipes from the left on hover and sits BEHIND the
+   text (z-index 0 against the text's 1), so the type stays fully legible
+   while the bar arrives under it. */
+.navlive .navmenu-bar{position:absolute;left:0;top:0;bottom:0;right:0;
+  background:var(--nda-wine);transform:scaleX(0);transform-origin:left center;
+  transition:transform .45s var(--nav-ease);z-index:0}
+.navlive .navmenu-link:hover .navmenu-bar,
+.navlive .navmenu-link:focus-visible .navmenu-bar{transform:scaleX(1)}
+.navlive .navmenu-link:hover .navmenu-num,
+.navlive .navmenu-link:focus-visible .navmenu-num{color:var(--color-text)}
+.navlive .navmenu-link[aria-current] .navmenu-num{color:var(--color-text)}
+.navlive .navmenu-link:focus-visible{outline:2px solid var(--color-ring);
+  outline-offset:-2px}
+@media(max-width:760px){
+  .navlive .navmenu-panel{width:100%;padding:calc(var(--nav-height) + var(--space-5))
+    var(--space-5) calc(var(--bookbar-height) + var(--space-5))}
+  .navlive .navmenu-list{flex-wrap:nowrap;justify-content:flex-start;padding-bottom:0}
+}
+/* REDUCED MOTION: the menu still opens and closes, it just does not
+   travel. Everything that moved is neutralised at rest AND in the open
+   state, or an element animates from a transform it never had. */
+@media(prefers-reduced-motion:reduce){
+  .navlive .navmenu-panel,.navlive .navmenu-layers i,
+  .navlive .navmenu-text,.navlive .navmenu-bar,
+  .navlive .navbtn-bars i{transition:none}
+  .navlive .navmenu-panel{transform:translateX(0);opacity:0}
+  .navlive .navmenu.is-open .navmenu-panel{opacity:1}
+  /* The sheets and the words are ANIMATIONS now, not transitions, so
+     `transition:none` above does not reach them — they need cancelling in
+     their own right, and their resting transforms neutralising, or a word
+     sits permanently 140% below its own mask and the menu opens blank. */
+  .navlive .navmenu.is-open .navmenu-layers i,
+  .navlive .navmenu.is-open .navmenu-text{animation:none}
+  .navlive .navmenu-layers i{transform:translateX(0)}
+  .navlive .navmenu-text{transform:none}
+}
+
+/* ---- THE CONTACT DOCK (2026-08-21) --------------------------------------
+   Fahad: "lets add a bar for call, text, whatsapp and call back like we did
+   with zef, it doesnt need to be in the top right corner". Structure is ZEF's
+   dock, verbatim in intent: four contact channels, fixed, always on.
+
+   IT REPLACES TWO THINGS AT ONCE — the MOBILE-ONLY `.bookbar` and the nav's
+   BOOK A SLOT chip. Those existed because neither covered every screen: the bar
+   was phones-only, the chip was the desktop stand-in. One surface on all sizes
+   is why both could go, and why removing the chip did not cost the site its
+   always-reachable booking.
+
+   NDA'S SKIN, NOT ZEF'S. ZEF's dock is a shadowed pill with full-colour app
+   icons. The design contract here locks radius 0, matte, and no shadows, so
+   this is a square slab with monochrome glyphs — the same deliberate deviation
+   the phone deck's square controls were. Call takes the wine fill as the
+   primary channel, mirroring ZEF's `.dock a.call`.
+
+   BOTTOM CENTRE, NOT BOTTOM FULL-WIDTH. The old bookbar spanned the viewport
+   and read as a second footer; a centred slab reads as a control. It also
+   leaves the page's own bottom-left/right corners clear, which is where the
+   footer's legal line and the scroll hint live. ---- */
+.dock{position:fixed;z-index:55;left:50%;transform:translateX(-50%);
+  bottom:var(--space-4);display:flex;
+  background:var(--nda-black-raised);border:1px solid var(--color-border)}
+.dock a{display:flex;align-items:center;gap:var(--space-2);
+  padding:var(--space-3) var(--space-4);color:var(--color-text);
+  font-family:var(--font-fact);font-size:var(--text-sm);letter-spacing:.06em;
+  text-transform:uppercase;white-space:nowrap;
+  border-right:1px solid var(--color-border);
+  transition:background .2s,color .2s}
+.dock a:last-child{border-right:0}
+.dock a svg{width:19px;height:19px;flex:none;display:block}
+.dock a:hover{background:var(--nda-wine-anchor)}
+.dock a.d-call{background:var(--color-accent);color:var(--color-on-accent)}
+.dock a.d-call:hover{background:var(--nda-wine-anchor)}
+/* THE DOCK'S CLEARANCE IS IN THE `footer` RULE ITSELF, further down this file,
+   NOT here. It belongs on the footer and not on `main`: the dock floats over the
+   bottom of the viewport, and the last thing on the page is not `main` — the
+   footer is its SIBLING and comes after it, so padding `main` (which is what the
+   old bookbar rule did) leaves the legal line sitting under the slab.
+   AND IT HAD TO GO INSIDE THAT RULE RATHER THAN BESIDE IT: `footer` sets
+   `padding` as a SHORTHAND, which resets padding-bottom, and that rule is later
+   in the file — so a separate `footer{padding-bottom:...}` here was silently
+   overwritten and the legal line sat under the dock with no error anywhere. */
+/* LABELS GO, ICONS STAY, AND THE NAME SURVIVES BOTH. Below 560px four labelled
+   items overflow a 360px phone. `display:none` would take the words out of the
+   accessibility tree as well and leave four links whose only name is an
+   aria-hidden glyph — a screen reader would read "link, link, link, link". This
+   is the visually-hidden technique instead, so each one still announces Call,
+   Text, WhatsApp or Callback. */
+@media(max-width:560px){
+  .dock a span{position:absolute;width:1px;height:1px;overflow:hidden;
+    clip-path:inset(50%);white-space:nowrap}
+  .dock a{gap:0;padding:var(--space-3) var(--space-5)}
+}
+/* The superseded mobile-only book bar. Markup is no longer emitted; kept
+   unreferenced the way this repo parks superseded work. */
+.bookbar{display:none}
+
+/* hero set piece */
+.hero-wrap{position:relative;height:220vh}
+.hero-wrap.static{height:auto}
+.hero{position:sticky;top:0;height:100vh;min-height:560px;display:flex;flex-direction:column;justify-content:center;overflow:hidden;padding:var(--nav-height) var(--space-5) var(--space-7)}
+.hero-wrap.static .hero{position:relative;height:auto;min-height:80vh}
+.hero-art{position:absolute;inset:0;pointer-events:none}
+.hero-art svg{position:absolute;right:-6vw;top:50%;transform:translateY(-46%);width:88vw;max-width:1100px;height:auto;opacity:.6}
+@media(max-width:760px){.hero-art svg{top:auto;bottom:2vh;transform:none;right:-12vw;width:118vw;opacity:.4}}
+.hero-art .pc{transition:none;will-change:transform}
+.hero h1{font-family:var(--font-display);font-size:var(--text-hero);line-height:.96;text-transform:uppercase;letter-spacing:.004em;position:relative;z-index:2;max-width:9em}
+.hero h1 .bar{background:var(--color-accent);color:var(--color-on-accent);padding:0 .08em;border:1px solid var(--color-border)}
+.hero .sub{font-size:var(--text-lg);color:var(--color-text-muted);margin-top:var(--space-5);position:relative;z-index:2;line-height:1.5}
+.hero .cta{display:inline-block;margin-top:var(--space-6);padding:var(--space-4) var(--space-6);background:var(--color-accent);border:1px solid var(--color-border);color:var(--color-on-accent);font-family:var(--font-fact);font-size:var(--text-sm);letter-spacing:.08em;text-transform:uppercase;position:relative;z-index:2;width:fit-content}
+.hero .cta:hover{background:var(--color-accent-display)}
+.hero .scroll-hint{position:absolute;bottom:var(--space-5);left:var(--space-5);font-family:var(--font-fact);font-size:11px;letter-spacing:.1em;color:var(--color-caption);z-index:2}
+.hero-wrap.static .scroll-hint{display:none}
+
+/* sections */
+/* space-7 (was space-8): 104px paddings stacked on adjacent margins into
+   200px black voids — Fahad flagged the dead space 2026-08-07 */
+.section{padding:var(--space-7) var(--space-5);max-width:1200px;margin:0 auto}
+.section.tight{padding-top:var(--space-6)}
+.section h2{font-family:var(--font-display);font-size:var(--text-2xl);text-transform:uppercase;letter-spacing:.01em;margin-bottom:var(--space-5)}
+.section .lead{color:var(--color-text-muted);max-width:60ch;margin-bottom:var(--space-6)}
+.page-head{padding:calc(var(--nav-height) + var(--space-7)) var(--space-5) var(--space-6);max-width:1200px;margin:0 auto}
+
+/* ---- THE PAGE HEAD.
+
+   The ZEF editorial treatment shipped here on 2026-08-21 and was reverted
+   the same day (Fahad: "Revert, I dont like it ... I like the size of the
+   words tho ... revert back to previous font but keep the same size").
+   Removed: the hairline, the tick, the 11ch label track and the full stop.
+   Kept: the SCALE, and the `.kbar` wine box the site already runs.
+
+   Metrics are the pre-ZEF ones -- line-height 1 and no added tracking --
+   because that is the "previous font" the ruling asks for. Only the size
+   survived the revert, which is why it is the one thing now held in a token
+   rather than written here.
+
+   --text-page IS SHARED WITH THE HOME PAGE'S SECTION HEADS (home.css), on
+   the same ruling: "implement this on the hero/main page to services,
+   portfolio, about us, etc as well". One token, so a page name and a beat
+   name cannot drift apart. ---- */
+.page-head h1.phead-title{font-family:var(--font-display);font-weight:400;
+  font-size:var(--text-page);line-height:1;text-transform:uppercase}
+}
+.page-head .lead{color:var(--color-text-muted);max-width:60ch;margin-top:var(--space-4);font-size:var(--text-lg);line-height:1.55}
+
+/* ---- ONE HEADING, TWO NAMES (FAQ, Fahad 2026-09-11: "Change the heading to
+   Frequently Asked Questions" then "Keep it FAQ on mobile"). Both names ship in
+   the markup and CSS picks one, at the site's own 760px phone breakpoint -- the
+   same line where the nav goes two-row and the service rail rejoins the flow.
+   NOT JS: a heading that needs a script is a heading a no-JS visitor never
+   reads (production-rules #31). `display:none` also keeps the hidden name out
+   of the accessible name, so a screen reader announces exactly one title. ---- */
+.fq-short{display:none}
+@media(max-width:760px){
+  .fq-long{display:none}
+  .fq-short{display:inline}
+}
+
+/* reveal */
+.js .rv{opacity:0;transform:translateY(12px);transition:opacity .3s ease-out,transform .3s ease-out}
+.js .rv.in,.js.revealed .rv{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.js .rv{opacity:1;transform:none;transition:none}}
+
+/* photo slots (quiet placeholder system — until the Drive drop) */
+.photos{display:grid;grid-template-columns:1.4fr 1fr;gap:var(--space-2);align-items:stretch}
+.ph{background:var(--color-surface-raised);border:1px solid var(--color-border);display:flex;align-items:flex-end;padding:var(--space-3);font-family:var(--font-fact);font-size:11px;letter-spacing:.06em;color:var(--color-caption);min-height:180px}
+.ph.tall{grid-row:span 2}
+@media(min-width:900px){.photos{grid-template-columns:1.6fr 1fr 1fr}.photos .wide{grid-column:span 2}}
+
+/* services */
+.flag{background:var(--color-surface-raised);border:1px solid var(--color-border);padding:var(--space-6);margin-bottom:var(--space-5)}
+.flag .t{font-family:var(--font-display);font-size:var(--text-xl);text-transform:uppercase}
+.flag .d{color:var(--color-text-muted);margin-top:var(--space-3);max-width:56ch}
+.flag .pr{font-family:var(--font-fact);font-size:var(--text-sm);color:var(--color-accent-text);margin-top:var(--space-4);letter-spacing:.05em}
+.rows{border-top:1px solid var(--color-border)}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-4);padding:var(--space-4) var(--space-1);border-bottom:1px solid var(--color-border)}
+.row .nm{font-weight:600}
+.row .ds{color:var(--color-text-muted);font-size:14px;flex:1}
+.row .pr{font-family:var(--font-fact);font-size:var(--text-sm);color:var(--color-accent-text);white-space:nowrap}
+.row a.nm:hover{color:var(--color-accent-text)}
+/* A closing line under a rows block. `.note` existed only as
+   `.beat-services .note` in home.css — scoped to one homepage beat — so the
+   same class on an interior page rendered as unstyled body copy at full size.
+   This is the interior-page rule, matching that one's fact-type treatment. */
+.section .note{margin-top:var(--space-6);font-family:var(--font-fact);
+  font-size:var(--text-sm);letter-spacing:.04em;color:var(--color-caption)}
+@media(max-width:700px){.row{flex-wrap:wrap}.row .ds{flex-basis:100%;order:3}}
+
+/* steps */
+.steps{display:grid;gap:var(--space-5);counter-reset:st}
+@media(min-width:900px){.steps{grid-template-columns:1.2fr 1fr 1fr}}
+.step{border-top:2px solid var(--color-accent);padding-top:var(--space-4)}
+.step::before{counter-increment:st;content:counter(st,decimal-leading-zero);font-family:var(--font-fact);color:var(--color-accent-text);font-size:var(--text-sm);letter-spacing:.1em}
+.step h3{font-family:var(--font-display);font-size:var(--text-lg);text-transform:uppercase;margin:var(--space-2) 0}
+.step p{color:var(--color-text-muted);font-size:15px}
+
+/* prose */
+.prose{max-width:62ch}
+.prose p{color:var(--color-text-muted);margin-bottom:var(--space-4)}
+.prose p strong{color:var(--color-text)}
+.prose .q{color:var(--color-text);font-size:var(--text-lg);line-height:1.5;border-left:2px solid var(--color-accent);padding-left:var(--space-4);margin:var(--space-5) 0}
+.kicker-line{font-family:var(--font-display);font-size:var(--text-xl);text-transform:uppercase;line-height:1.15;margin-top:var(--space-5)}
+
+/* needs-fact marks — one quiet system (#16) */
+.nf{font-family:var(--font-fact);font-size:.85em;color:var(--color-accent-text);border:1px dashed var(--color-accent-text);padding:0 6px;white-space:nowrap}
+
+/* portfolio */
+.switcher{display:flex;flex-wrap:wrap;gap:var(--space-2);margin:var(--space-5) 0}
+.switcher a{display:inline-flex;align-items:center;gap:.55em;font-family:var(--font-fact);font-size:var(--text-sm);letter-spacing:.06em;padding:var(--space-2) var(--space-4);border:1px solid var(--color-border);color:var(--color-text-muted)}
+/* BRAND MARKS: 1.15em so they scale with the label rather than to a pixel
+   size, and `fill:currentColor` so each tints with its own chip -- including
+   the wine fill on the current page, where a fixed colour would sit wrong.
+   flex-shrink:0 keeps a mark from squashing when the row wraps. */
+.switcher .mk{width:1.15em;height:1.15em;flex:0 0 auto;fill:currentColor}
+/* GMC and Oldsmobile have no separate emblem -- their logo IS the word, so
+   there is no glyph to show and a plain label would read as a chip whose
+   icon failed. They take the DISPLAY face at a slightly larger size with
+   tight tracking, which is the site's own nearest equivalent to a heavy
+   block logotype. Still `currentColor`: GMC's red is 3.36:1 on this ground,
+   under the 4.5:1 floor for text, and these ARE text rather than decorative
+   marks beside a label. */
+.switcher a.wm span{font-family:var(--font-display);font-size:1.22em;letter-spacing:.01em;line-height:1}
+.switcher a:hover{color:var(--color-text);border-color:var(--color-caption)}
+.switcher a[aria-current]{background:var(--color-accent);color:var(--color-on-accent);border-color:var(--color-border)}
+.switcher .soon{font-family:var(--font-fact);font-size:var(--text-sm);letter-spacing:.06em;padding:var(--space-2) var(--space-4);border:1px dashed var(--color-border);color:var(--color-caption);cursor:default}
+/* make cards on the portfolio index — navigation tiles, so these DO crop to a
+   common shape; the galleries below never do (see .pgrid) */
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--space-2);margin-top:var(--space-6)}
+.mcard{position:relative;display:block;overflow:hidden;border:1px solid var(--color-border);background:var(--color-surface-raised);aspect-ratio:3/4}
+.mcard img{width:100%;height:100%;object-fit:cover;transition:transform .4s ease-out;transform-origin:center}
+.mcard:hover img,.mcard:focus-visible img{transform:scale(1.05)}
+.mcard-t{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:2px;padding:var(--space-4) var(--space-3) var(--space-3);background:linear-gradient(to top,color-mix(in srgb,var(--nda-black) 92%,transparent),transparent)}
+.mcard-t b{font-family:var(--font-display);font-size:var(--text-lg);text-transform:uppercase;letter-spacing:.01em;line-height:1}
+.mcard-t em{font-family:var(--font-fact);font-size:11px;font-style:normal;letter-spacing:.06em;color:var(--color-text-muted)}
+@media(min-width:700px){.mgrid{grid-template-columns:repeat(4,1fr)}.mcard.tall{grid-row:span 2}.mcard.tall,.mcard.wide{aspect-ratio:auto}.mcard.wide{grid-column:span 2;aspect-ratio:3/2}}
+@media(prefers-reduced-motion:reduce){.mcard img{transition:none}.mcard:hover img,.mcard:focus-visible img{transform:none}}
+
+/* one car's photo set — masonry columns so every frame shows whole. These are
+   the client's own photos of his own work: nothing here gets cropped. */
+.jobblk{border-top:1px solid var(--color-border);padding:var(--space-6) 0}
+.jobblk header{display:flex;align-items:baseline;gap:var(--space-4);flex-wrap:wrap;margin-bottom:var(--space-5)}
+.jobblk h3{font-family:var(--font-display);font-size:var(--text-xl);text-transform:uppercase;line-height:1}
+.jobblk .meta{font-family:var(--font-fact);font-size:var(--text-sm);color:var(--color-accent-text);letter-spacing:.04em}
+/* ROWS, NOT COLUMNS (2026-09-11, Fahad: "Ive also been noticing this
+   discrepncy in alot of the potrfolio brand pages ... ensure uts symetrical").
+   `columns:` is a MULTI-COLUMN FLOW: it pours the frames DOWN balanced
+   columns, so cards never line up across the page and whichever column runs
+   out first leaves a hole at the bottom — measured on Tesla at 1440 as rows of
+   4, 3, 3 and 4, 1, 2, 1, 2 for two ten-frame blocks. That hole is what he
+   screenshotted.
+
+   A wrapping flex row lays them ACROSS instead: every row is full, and only a
+   block's last row can be short. `justify-content:center` centres that
+   remainder, so the leftover space is even on both sides rather than a gap
+   hanging off the right edge.
+
+   SAFE HERE BECAUSE THE SET IS ONE SHAPE: 202 of the 210 displayed frames are
+   9:16 and only four are landscape (j04-03, j07-02, j07-13, j32-03), so rows
+   sit flush. Nothing is stretched or cropped — the never-crop promise this
+   gallery makes is kept; a landscape frame simply sits shorter than its
+   row-mates, which is the honest result of showing it whole. */
+.pgrid{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-2)}
+.pgrid > *{flex:0 0 calc((100% - var(--space-2)) / 2)}
+@media(min-width:640px){.pgrid > *{flex:0 0 calc((100% - 2 * var(--space-2)) / 3)}}
+@media(min-width:1000px){.pgrid > *{flex:0 0 calc((100% - 3 * var(--space-2)) / 4)}}
+.pgrid.short > *{flex:0 0 calc((100% - var(--space-2)) / 2)}
+@media(min-width:640px){.pgrid.short > *{flex:0 0 calc((100% - 3 * var(--space-2)) / 4)}}
+@media(min-width:1000px){.pgrid.short > *{flex:0 0 calc((100% - 5 * var(--space-2)) / 6)}}
+/* margin-bottom went with the column flow — the flex `gap` spaces both axes
+   now, and leaving it would double the space between rows. */
+.pcell{display:block;width:100%;padding:0;margin:0;border:1px solid var(--color-border);background:var(--color-surface-raised);cursor:zoom-in;line-height:0}
+.pcell img{width:100%;height:auto;opacity:.94;transition:opacity .25s ease-out}
+.pcell:hover img,.pcell:focus-visible img{opacity:1}
+@media(prefers-reduced-motion:reduce){.pcell img{transition:none}}
+
+/* lightbox */
+.lbx{position:fixed;inset:0;z-index:100;display:none;background:color-mix(in srgb,var(--nda-black) 96%,transparent);padding:var(--space-5)}
+.lbx[open],.lbx.on{display:grid;grid-template-rows:1fr auto;gap:var(--space-4);place-items:center}
+.lbx img{max-width:100%;max-height:78vh;width:auto;height:auto;object-fit:contain}
+.lbx .lbx-cap{font-family:var(--font-fact);font-size:var(--text-sm);letter-spacing:.06em;text-transform:uppercase;color:var(--color-text-muted);text-align:center}
+.lbx button{position:absolute;background:color-mix(in srgb,var(--nda-black) 70%,transparent);border:1px solid var(--color-border);color:var(--color-text);font-family:var(--font-fact);font-size:var(--text-lg);line-height:1;padding:var(--space-3) var(--space-4);cursor:pointer}
+.lbx button:hover{background:var(--color-accent)}
+.lbx .lbx-close{top:var(--space-4);right:var(--space-4)}
+.lbx .lbx-prev{left:var(--space-4);top:50%;transform:translateY(-50%)}
+.lbx .lbx-next{right:var(--space-4);top:50%;transform:translateY(-50%)}
+body.lbx-open{overflow:hidden}
+
+.build{border-top:1px solid var(--color-border);padding:var(--space-6) 0;display:grid;gap:var(--space-5)}
+@media(min-width:900px){.build{grid-template-columns:1fr 1.4fr}}
+.build h3{font-family:var(--font-display);font-size:var(--text-xl);text-transform:uppercase}
+.build .meta{font-family:var(--font-fact);font-size:var(--text-sm);color:var(--color-accent-text);margin-top:var(--space-2);letter-spacing:.04em}
+.build p{color:var(--color-text-muted);margin-top:var(--space-3);max-width:52ch}
+
+/* FAQ */
+.faq{border-top:1px solid var(--color-border)}
+.faq details{border-bottom:1px solid var(--color-border)}
+/* ONE STEP UP THE SITE'S OWN SCALE, NOT A NUMBER (Fahad 2026-08-22: "make the
+   size of the question a bit larger"). --text-md -> --text-lg is 16 -> 21px,
+   the next rung the type system already defines; picking 18 or 19 would put a
+   size on this page that exists nowhere else, which is the drift the heading
+   correction was about. It also buys a real hierarchy against the answer,
+   which stays at body size.
+   ON THE SHARED COMPONENT, SO PRICES MOVES TOO. `.faq` is one accordion used
+   on two pages; sizing only the FAQ page's copy would leave the pricing page's
+   four questions visibly smaller than the same four on the FAQ page. */
+.faq summary{cursor:pointer;padding:var(--space-4) 0;font-size:var(--text-lg);
+  font-weight:600;line-height:1.35;list-style:none;display:flex;
+  justify-content:space-between;gap:var(--space-4)}
+/* CHEVRON, NOT "+/–" (Fahad's reference, 2026-08-22). Drawn from two borders
+   on the pseudo-element rather than loaded as an icon: the source pulls
+   @radix-ui/react-icons for one glyph, and this is 4 lines of CSS that stays
+   sharp at any size, takes the accent colour for free and costs no request.
+   The 45deg/225deg pair IS the reference's 180deg flip — a chevron built from
+   a corner starts at 45. */
+.faq summary::after{content:"";flex:none;align-self:center;
+  width:10px;height:10px;margin-right:2px;
+  border-right:2px solid var(--color-accent-text);
+  border-bottom:2px solid var(--color-accent-text);
+  transform:translateY(-2px) rotate(45deg);
+  transition:transform .2s var(--nav-ease,ease-out)}
+.faq details[open] summary::after{transform:translateY(1px) rotate(225deg)}
+
+/* THE OPEN/CLOSE ANIMATION, WITHOUT THE LIBRARY. Radix measures the panel and
+   feeds `--radix-accordion-content-height` to a keyframe; `interpolate-size`
+   lets CSS animate to `auto` on its own, so `<details>` keeps doing the work
+   and no JS measures anything. PROGRESSIVE BY CONSTRUCTION: where
+   `::details-content` is not supported the answer simply appears instantly,
+   which is what it did before this change — so there is no state where the
+   accordion is worse than it was, and none where it needs JS to open
+   (production-rules #31).
+   `allow-discrete` is what stops the panel vanishing on frame 1 of the close:
+   content-visibility is a discrete property and would otherwise flip before
+   the height had travelled. */
+.faq{interpolate-size:allow-keywords}
+.faq details::details-content{block-size:0;overflow:hidden;
+  transition:block-size .24s ease,content-visibility .24s allow-discrete}
+.faq details[open]::details-content{block-size:auto}
+@media(prefers-reduced-motion:reduce){
+  .faq summary::after{transition:none}
+  .faq details::details-content{transition:none}
+}
+
+/* ---- The two-column FAQ grid (Fahad's reference, 2026-08-22) -------------
+   THE HEADING IS NOT PART OF THIS COMPONENT, AND THAT IS THE CORRECTION.
+   The first pass ported the reference's CENTRED header block and used it
+   instead of `page_head()`, which made faq.html the only page on the site
+   whose name was not set left in the wine `.kbar` at `--text-page`. Fahad:
+   "it should follow the same headings rule and it should also follow the same
+   font, typography as the rest of the website". So the page name, the lead,
+   the scale and the kbar are all the shared component again, and `.faqx`
+   styles ONLY what the reference actually contributed: two columns of
+   disclosures. `.faqx-head` is gone rather than left unreferenced — it was
+   three rules that re-declared type the site already owns in a token, which
+   is exactly the drift the correction is about.
+   No width or padding of its own either: it is a plain `.section`, so it
+   shares the 1200px measure and the gutters every other page uses. */
+/* One column until there is genuinely room for two. Splitting earlier gives
+   two ~300px columns of wrapped questions, which reads as a broken table
+   rather than as a pair of lists. */
+/* STACKED, THE COLUMN SPLIT MUST LEAVE NO TRACE. At one column the 4/4 split
+   is invisible structure, and a gap between the two halves reads as "this list
+   ended and another began" — it landed exactly between question 4 and question
+   5 on a phone. So the gap and the second column's top rule BOTH only exist
+   once there are genuinely two columns; stacked, the eight questions are one
+   continuous list with one hairline between each pair. */
+.faqx-grid{display:grid;gap:0}
+.faqx-grid .faq{border-top:1px solid var(--color-border)}
+.faqx-grid .faq + .faq{border-top:0}
+@media(min-width:860px){
+  .faqx-grid{grid-template-columns:1fr 1fr;gap:var(--space-7)}
+  /* two columns again: each carries its own top rule so they read as a pair */
+  .faqx-grid .faq + .faq{border-top:1px solid var(--color-border)}
+}
+.faq .a{color:var(--color-text-muted);padding:0 0 var(--space-4);max-width:64ch}
+/* LINKS IN AN ANSWER NEED SAYING OUT LOUD. The global rule is
+   `a{color:inherit;text-decoration:none}`, so an unstyled link inside a muted
+   answer is the same colour as the sentence around it and reads as plain text.
+   The prices FAQ used to carry an inline `style="color:..."` on its one link to
+   get round this; there are three now (products, pricing, the phone), so it is
+   a rule. UNDERLINED as well as coloured, because colour alone is not an
+   affordance (WCAG 1.4.1) — and against a wall that lights up under the cursor,
+   the one thing that cannot be washed out by the artwork is the underline. */
+/* ONE INLINE-LINK TREATMENT, THREE PLACES. `.seealso` (the service pages'
+   route to the pricing page) joins the FAQ answers and the section notes on the
+   same rule rather than inventing a fourth look — Fahad 2026-08-22: "dont add a
+   button, rather clickable words". The underline IS the affordance here: with
+   no box and no arrow, colour alone would be carrying it, which fails WCAG
+   1.4.1 and is invisible to anyone who cannot separate the wine-lift from the
+   body grey. */
+.faq .a a,.section .note a,.seealso a{color:var(--color-accent-text);
+  text-decoration:underline;text-underline-offset:3px}
+.faq .a a:hover,.section .note a:hover,.seealso a:hover{color:var(--nda-paint-white)}
+/* Sits with the copy it follows, not floating away from it like the button did. */
+.seealso{margin-top:var(--space-4)}
+
+/* closing book band */
+.book-band{background:var(--color-accent);border-top:1px solid var(--color-border);margin-top:var(--space-7)}
+.book-band .inner{max-width:1200px;margin:0 auto;padding:var(--space-7) var(--space-5);display:flex;align-items:center;justify-content:space-between;gap:var(--space-7);flex-wrap:wrap}
+.book-band h2{font-family:var(--font-display);font-size:clamp(34px,5vw,60px);text-transform:uppercase;color:var(--color-on-accent);line-height:1}
+.book-band p{color:var(--color-on-accent);margin-top:var(--space-4);max-width:52ch}
+.book-band .channels{display:flex;flex-wrap:wrap;gap:var(--space-3)}
+.book-band .channels a{font-family:var(--font-fact);font-size:var(--text-sm);letter-spacing:.08em;padding:var(--space-3) var(--space-5);border:1px solid var(--color-on-accent);color:var(--color-on-accent)}
+.book-band .channels a:hover{background:var(--nda-black);border-color:var(--nda-black)}
+footer{padding:var(--space-5) var(--space-5) calc(var(--space-5) + 62px);display:flex;flex-wrap:wrap;gap:var(--space-3);justify-content:space-between;font-family:var(--font-fact);font-size:11px;letter-spacing:.06em;color:var(--color-caption);border-top:1px solid var(--color-border)}
+
+/* services hub media (asset integration 2026-08-07) */
+.flag .vband{margin-top:var(--space-5);border:1px solid var(--color-border)}
+.flag .vband .tileshot{width:100%;max-height:300px;object-fit:cover;display:block}
+.row.has-media{align-items:center}
+.row .vthumb{flex:0 0 auto;width:104px;height:64px;border:1px solid var(--color-border);overflow:hidden}
+.row .vthumb .tileshot{width:100%;height:100%;object-fit:cover;display:block}
+@media(max-width:700px){.row.has-media .vthumb{order:0}}
+
+
+/* full-bleed film strip between sections (FT page, Fahad 2026-08-07) */
+.film-strip{position:relative;height:62vh;min-height:320px;overflow:hidden;
+  border-top:1px solid var(--color-border);border-bottom:1px solid var(--color-border)}
+.film-strip video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+@media (prefers-reduced-motion: reduce){.film-strip video{display:none}
+  .film-strip{background:url('assets/videos/ft-strip-poster.jpg') center/cover}}
+
+/* previous-work card stack (ported from Fahad's card-stack reference, no libs) */
+.stack-wrap{position:relative;max-width:780px;margin:var(--space-6) auto 0;padding:var(--space-6) 0 0}
+.stack{position:relative;aspect-ratio:4/3;outline:none;touch-action:pan-x}
+.stk-card{position:absolute;inset:0;border:1px solid var(--color-border);background:var(--color-surface-raised);
+  overflow:hidden;transition:transform .35s cubic-bezier(.22,1,.36,1),filter .35s,opacity .35s;will-change:transform}
+.stk-card img{width:100%;height:100%;object-fit:contain;display:block;user-select:none;background:var(--color-surface-raised)}
+.stk-card.front{cursor:grab}
+.stk-card.front:active{cursor:grabbing}
+.stk-info{position:absolute;left:0;right:0;bottom:0;padding:14px 18px;
+  background:linear-gradient(to top,rgba(10,10,10,.82),transparent);
+  opacity:0;transition:opacity .25s}
+.stk-card.front:hover .stk-info{opacity:1}
+.stk-info b{display:block;font-family:var(--font-display);font-weight:400;text-transform:uppercase;
+  font-size:var(--text-lg);letter-spacing:.02em}
+.stk-info span{color:var(--nda-mist);font-size:14px}
+.stk-btn{position:absolute;top:50%;transform:translateY(-50%);z-index:20;
+  background:var(--nda-wine);border:1px solid var(--nda-line);color:var(--nda-paint-white);
+  width:44px;height:44px;font-size:22px;line-height:1;cursor:pointer;transition:background .2s}
+.stk-btn:hover{background:var(--nda-wine-anchor)}
+.stk-btn.prev{left:-22px}.stk-btn.next{right:-22px}
+.stk-count{margin-top:var(--space-4);text-align:center;font-family:var(--font-fact);
+  font-size:var(--text-sm);letter-spacing:.08em;color:var(--nda-mist)}
+@media(max-width:700px){.stk-btn.prev{left:6px}.stk-btn.next{right:6px}}
+
+/* wine box behind section headings (site-wide component, matches hero KEEP.) */
+.kbar{background:var(--nda-wine);box-shadow:0 0 0 1px var(--nda-line);
+  padding:0 .14em;display:inline-block}
+
+/* ---- Coverflow (interior detail "Previous work") 2026-08-08 ----------------
+   Vanilla port of the React reference Fahad supplied. Behaviour lives in
+   coverflow.js; this is geometry and skin only. Matte per the design
+   contract: hairline edge, no drop shadow, no gradient.
+
+   CARD SHAPE IS A VARIANT, not a constant -- two pages run this rake off
+   different source material:
+     default (interior)  4:5 + cover   -- 12 frames, all 9:16, re-cuttable from
+                         originals, so they are cut to fill the card exactly.
+     .cf.tall (FT)       9:16 + contain -- 34 of Fahad's hand-trimmed selects
+                         that must NOT be re-cropped; see the .cf.tall rule.
+   ONE pair of numbers (--cf-w / --cf-hn) drives BOTH the card's aspect-ratio
+   and the rail's height, so the rake and its container cannot disagree. ------*/
+.cf{--cf-card:clamp(160px,24vw,300px);
+  --cf-w:4;--cf-hn:5;                                   /* card ratio, w / h */
+  --cf-ratio:var(--cf-w)/var(--cf-hn);
+  --cf-h:calc(var(--cf-card) * var(--cf-hn) / var(--cf-w));
+  --cf-fit:cover;
+  /* ROUNDED GALLERY CARDS (2026-08-22, Fahad: "make the edges round like in the
+     previous cards ... card dimension should remain the same but the tile edges
+     are more rounded"). Carried over from the square trial, which was rejected
+     for its CROP, not its corners.
+
+     A RULED DEVIATION FROM radius 0, AND A NARROW ONE. The design contract locks
+     radius 0 site-wide and every other surface still obeys it — this is the
+     gallery PHOTO only. It is one token so the whole thing zeroes from here.
+
+     ON `.cf`, NOT ON `.cf.detailed`. Four rakes share this component across
+     four pages; rounding only the Full Treatment one would leave the ceramic,
+     paint and exterior galleries square-cornered and make the site look
+     half-finished rather than deliberate. */
+  --cf-radius:18px;
+  width:100%}
+.cf-stage{position:relative}
+.cf-track{
+  /* Vertical padding keeps card edges clear of the overflow clip. */
+  padding:40px 0;overflow:hidden;outline:none;cursor:grab;
+  perspective:calc(var(--cf-card) * 3);
+  /* Horizontal drag is ours; the page keeps vertical scroll AND the reader
+     keeps pinch-zoom. Bare `pan-y` suppresses a pinch that starts on the rake,
+     which on the tall/contain variant blocks zooming into the one thing the
+     section exists to show. */
+  touch-action:pan-y pinch-zoom;
+}
+.cf.is-dragging .cf-track{cursor:grabbing}
+.cf-track:focus-visible{outline:2px solid var(--nda-wine-lift);outline-offset:4px}
+.cf-rail{position:relative;height:var(--cf-h);transform-style:preserve-3d;
+  user-select:none;-webkit-user-select:none}
+.cf-card{position:absolute;left:50%;top:0;width:var(--cf-card);aspect-ratio:var(--cf-ratio);
+  overflow:hidden;background:var(--nda-black-raised);
+  border:1px solid var(--color-border);border-radius:var(--cf-radius)}
+/* will-change holds a compositor layer for as long as it is set. On the FT
+   rake that is 34 layers at 300x533, retained while the section is far off
+   screen. The driver toggles .is-moving for the length of a gesture instead. */
+.cf.is-moving .cf-card{will-change:transform,opacity}
+.cf-card img{width:100%;height:100%;object-fit:var(--cf-fit);display:block;
+  user-select:none;-webkit-user-drag:none;pointer-events:none}
+.cf-cap{margin-top:8px;text-align:center;min-height:44px}
+.cf-title{font-family:var(--font-fact);font-size:12px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--nda-paint-white)}
+.cf-sub{margin-top:4px;font-family:var(--font-fact);font-size:11px;
+  letter-spacing:.1em;color:var(--nda-wine-lift)}
+/* 44px, not 40: qa-acceptance-checklist "tap targets >= 44x44px". */
+.cf-nav{position:absolute;top:50%;translate:0 -50%;z-index:200;
+  width:44px;height:44px;display:grid;place-items:center;
+  background:rgba(10,10,10,.72);border:1px solid var(--color-border);
+  color:var(--nda-paint-white);cursor:pointer}
+.cf-nav:hover{background:var(--nda-wine)}
+.cf-nav.prev{left:8px} .cf-nav.next{right:8px}
+/* Counter, used instead of dots past DOTS_MAX slides. aria-hidden because the
+   caption above it is already an aria-live region announcing the slide, and
+   the track's own aria-label carries the count. */
+.cf-count{margin-top:14px;text-align:center;font-family:var(--font-fact);
+  font-size:var(--text-sm);letter-spacing:.08em;color:var(--nda-mist)}
+.cf-count .cf-n{color:var(--nda-paint-white)}
+.cf-dots{margin-top:2px;display:flex;justify-content:center;gap:0}
+/* The dot stays a 7px mark, but the button around it is 24x24 -- WCAG 2.5.8
+   Target Size (Minimum) applies to the control, not to the ink. */
+.cf-dot{width:24px;height:24px;padding:0;border:0;cursor:pointer;flex:0 0 auto;
+  background:none;display:grid;place-items:center}
+.cf-dot::after{content:"";width:7px;height:7px;
+  background:var(--nda-paint-white);opacity:.28;transition:opacity .2s}
+.cf-dot.is-on::after{opacity:1;background:var(--nda-wine-lift)}
+@media(prefers-reduced-motion:reduce){.cf-card{will-change:auto}}
+
+/* TALL VARIANT -- the Full Treatment page's "Previous work".
+   Those 34 frames are Fahad's hand-picked, hand-trimmed selects (40 chosen,
+   6 removed on a second board) and his ruling on that gallery is that the FULL
+   image is always visible. So this variant does NOT crop: object-fit is
+   contain, and the card is 9:16 because 29 of the 34 sources are exactly 9:16
+   and fill it edge to edge. The other 5 (four at 3:4, one at 0.574) letterbox
+   against the raised surface rather than losing a pixel.
+   For contrast, the 4:3 card this replaced pillarboxed EVERY frame: a 9:16
+   photo in a 4:3 contain box paints only 42% of the card. */
+.cf.tall{--cf-w:9;--cf-hn:16;--cf-fit:contain}
+.cf.tall .cf-card img{background:var(--color-surface-raised)}
+
+/* SQUARE VARIANT -- 2026-08-22, Fahad: "I wanted to see the card shape... 
+   implement the change and then ill revert back if i dont like it".
+
+   THIS IS A TRIAL AND IT IS BUILT TO BE UNDONE. One word in generate.py
+   (FT_RAKE_VARIANT) switches the Full Treatment rake between "square" and
+   "tall". Nothing else has to move, and no image file is touched.
+
+   IT CROPS, WHICH THE TALL VARIANT REFUSED TO DO, AND THAT IS THE TRADE ON
+   TRIAL HERE. A 9:16 frame in a 1:1 cover box shows the middle ~56% of its
+   height: the top and bottom of every photo are hidden. Fahad's standing ruling
+   on this gallery was that the full image is always visible (commit 692666f),
+   so this variant is a deliberate, temporary departure from it.
+
+   NO FILE IS RE-CUT, AND THAT DISTINCTION IS THE SAFE PART. The plate-retouch
+   queue is keyed to these exact filenames, and the recorded risk is that a
+   re-crop from the ORIGINALS could move a plate INTO frame. This crop is CSS
+   over the existing cut, and a crop can only ever hide, never reveal — so no
+   plate can appear that was not already published. The legal gate is unchanged.
+
+   RADIUS IS PART OF THE SHAPE BEING TRIALLED. The design contract locks radius
+   0 site-wide; the reference's cards are rounded, and rounding is half of what
+   makes them read as the reference. It is a token so it can be tuned or zeroed
+   without touching anything else. ------------------------------------------ */
+.cf.square{--cf-w:1;--cf-hn:1;--cf-fit:cover}
+/* The radius that used to live here moved to `.cf` on 2026-08-22 — it was the
+   half of this trial Fahad kept. */
+
+/* 18px on a 300px card is a corner; on the 160px card a phone gets it is a
+   lozenge. The radius steps down with the card, as radii have to. */
+@media(max-width:560px){.cf{--cf-radius:12px}}
+
+/* Without JS every card sits at left:50%;top:0 -- a stack of twelve, only the
+   last one visible. So the rest state is a plain scrolling strip, and
+   coverflow.js adds .is-live to take the rake over. One mechanism covers
+   JS-off, a failed fetch and a script error alike; same contract the phone
+   deck uses. */
+.cf:not(.is-live) .cf-track{overflow-x:auto;overflow-y:hidden;padding:0;
+  perspective:none;cursor:auto;-webkit-overflow-scrolling:touch}
+.cf:not(.is-live) .cf-rail{height:auto;display:flex;gap:12px;transform-style:flat}
+.cf:not(.is-live) .cf-card{position:static;flex:0 0 var(--cf-card)}
+.cf:not(.is-live) .cf-nav,.cf:not(.is-live) .cf-dots{display:none}
+/* A deferred card still holds an empty img (the driver's hydration target) and
+   a <noscript> twin with the real src. Without JS the empty one must get out
+   of the twin's way; [data-src] is present only until the driver promotes it. */
+.cf:not(.is-live) .cf-card img[data-src]{display:none}
+
+/* ---- Interior right-margin video rail 2026-08-08 -------------------------
+   Blueprint: 00 - Source of Truth/interior-rail-blueprint.html
+   Fahad 2026-08-08 (round 2): both frames identical size and larger, frame A
+   pinned so it does not travel, liquid glass on the boxes, page tightened.
+
+   LIQUID GLASS is not invented here -- it is the existing .gtile treatment
+   from home.css, reused verbatim. It is a SCOPED deviation from the matte
+   design contract, which is why it stays named and confined to these boxes.
+   The glass needs something to be glass ABOUT, so the video is inset by
+   padding and the rim is what you actually see.
+
+   NOTE: nothing in this chain may take overflow:hidden or clip -- a clipping
+   ancestor silently rescopes position:sticky and the pin just stops. -------*/
+/* --rail-w IS DECLARED ON THE CHAPTER, NOT THE RAIL, because the prose has to
+   reserve the same column the rail occupies and the two must not be able to
+   drift. Change the width here and the text column follows it. */
+.svc-chapter{position:relative;--rail-w:clamp(200px,26vw,310px)}
+/* page tightened: these two sections carried space-7 (64px) top and bottom */
+.svc-chapter .section{padding-top:var(--space-5);padding-bottom:var(--space-5)}
+
+/* [BUG, PRE-EXISTING, FIXED 2026-08-22] THE PROSE RAN UNDER THE RAIL between
+   761px and ~1000px. The rail is absolutely positioned OUT OF FLOW, so nothing
+   ever told the text column it was there: the section kept its full width and
+   the video simply painted over the copy. Measured at 780x640 with the text's
+   own line boxes (a Range over every text node, NOT the .prose box -- the box
+   is full width whether or not the words reach the edge): text ran to x=582
+   against a tile starting at x=553, and TWO LINES of body copy were under it,
+   with `elementFromPoint` on the last word returning VIDEO.
+   It is genuinely pre-existing: at the old 196px width the tile started at 560
+   and the same lines were still 22px under it. This widening made it 7px
+   worse, which is how it was found -- not what caused it.
+   Reserving the column is the fix rather than capping .prose, because the h2s
+   share the same track. Above 1000px or so the copy stops well short anyway
+   (it ends at x=632 against a tile at x=906 at 1280), so this rule changes
+   nothing where nothing was wrong. */
+@media(min-width:761px){
+  .svc-chapter .section{padding-right:calc(var(--rail-w) + var(--space-6))}
+}
+.svc-chapter .page-head{padding-bottom:var(--space-4)}
+
+.svc-rail{
+  position:absolute;
+  /* z-index:0 makes the rail its own stacking context, so the curtain below
+     can paint over it no matter what the frames do internally. */
+  z-index:0;
+  /* THE TILE STARTS WHERE THE PAGE NAME ENDS (Fahad 2026-08-22: "the
+     placement of the tile needs to be lower, roughly around where the interior
+     detailing heading ends"). This is that edge COMPUTED, not a measured
+     constant: .page-head's padding-top is `nav-height + space-7`, the h1 is
+     `--text-page` tall at line-height 1, so its bottom is exactly the sum.
+     --text-page is a clamp (40px..8.4vw..96px), so a hard 224px would have
+     been right only at >=1143px wide and would have drifted at every size
+     below it. Verified against the measured h1: both 224 at 1280.
+     DROPPED ONE MORE STEP (Fahad, second round: "position it slightly lower
+     than now"). `+ --space-6` is not a nudge, it is a LANDMARK: it lands the
+     tile's top edge on the top of the "What it is" heading (measured 264 at
+     1280), so the tile starts level with the page's first section rather than
+     floating at an arbitrary offset. */
+  top:calc(var(--nav-height) + var(--space-7) + var(--text-page) + var(--space-6));
+  /* The rail overhangs the chapter deliberately. position:sticky can only hold
+     an element that is SHORTER than its containing block -- with the rail cut
+     back to the chapter (631px) the 649px handset had nowhere to stick and the
+     pin silently broke, scrolling away instead of holding. The overhang buys
+     the hold; the curtain rule below stops the frame ever painting over the
+     coverflow on its way out. It is 136px shorter now that it starts lower,
+     which the tile can afford because it is shorter than the handset was. */
+  bottom:-520px;
+  right:max(var(--space-5), calc((100% - 1200px) / 2 + var(--space-5)));
+  /* WIDER (Fahad, second round: "box needs to be bigger, horizontally
+     preferably"). The old 248px cap was derived for the HANDSET -- width/0.462
+     plus an 18px bezel -- and none of those terms exist any more.
+     THE CEILING IS THE CURTAIN, NOT THE MARGIN. There is 354px of clear gutter
+     between the prose and the rail at 1280, so width is not what limits this:
+     the tile must END above `.svc-chapter ~ .section` (measured 691), which
+     paints over the rail opaquely. Starting at 264 that leaves a 427px budget,
+     and frame height is (width - 22) / ratio + 51.
+     WHICH IS WHY THE RATIO HAD TO GIVE. At 9:16 the tile cannot widen AT ALL --
+     270px already overruns 691. Solved as a table rather than by taste:
+        9:16  310px -> 563px tall   over by 136
+        4:5   310px -> 411px tall   fits, 16px clear
+        1:1   340px -> 369px tall   fits easily
+     1:1 fits best and reads worst -- sampled at t=6 it is mostly the back of
+     the detailer's cap, and at t=0.4 the floor he is extracting is gone. 4:5
+     keeps the dashboard, the floor mat, the hose and the worker in every frame
+     sampled. So 4:5 at 310, with 16px of clearance kept deliberately for
+     font-swap reflow. */
+  width:var(--rail-w);
+  display:flex;flex-direction:column;gap:var(--space-6);
+}
+.svc-frame{margin:0;width:100%}
+/* A holds, B travels. SIZE IS LOAD-BEARING HERE: the right margin only exists
+   beside the two prose sections (~730px). Past that the coverflow takes the
+   full width and there is no margin at all, so anything parked in it must be
+   gone by then. Both frames are therefore sized so A + gap + B fits that 730px
+   -- at 344px wide B measured 22% visible at rest and 0% past scroll 200, i.e.
+   the second video was never actually seen. This is the largest both-equal size
+   where both are fully visible while you read. */
+.svc-frame.a{position:sticky;top:calc(var(--nav-height) + var(--space-5));z-index:2}
+
+/* the glass shell */
+.svc-media{
+  display:block;padding:10px;
+  background:rgba(238,255,255,.055);
+  backdrop-filter:blur(22px) saturate(1.25);
+  -webkit-backdrop-filter:blur(22px) saturate(1.25);
+  border:1px solid rgba(238,255,255,.16);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 14px 44px rgba(0,0,0,.5);
+}
+/* 9:16 IS THE SOURCE'S OWN SHAPE, so the tile crops nothing. The clip
+   displays 1080x1920 (it reports 1920x1080 coded plus a rotation matrix --
+   read the DISPLAY dims, not the coded ones). The component's old 4:5 was
+   built for the handset era and would take 30% of the height off a vertical
+   work shot: sampled at t=3s it cuts the detailer's lower hand out of frame,
+   and the gesture is the point of the clip. It also matches the coverflow
+   cards further down the same page. One token if a tighter crop is ever
+   wanted -- .svc-media is a cover tile, so cropping here is allowed (the
+   never-crop ruling is a GALLERY rule); it just is not free. */
+/* 4:5 IS A CROP, AND IT IS THE PRICE OF "BIGGER, HORIZONTALLY" ON A VERTICAL
+   CLIP -- said plainly because it reverses the 9:16 choice made hours earlier
+   the same day. The source is 9:16, so a wider box can only be filled by
+   taking height off it: 4:5 shows 70% of the frame. What it removes is the
+   door-frame top and the sill bottom; what it keeps -- checked frame by frame,
+   not assumed -- is the dashboard, the floor being extracted, the hose and the
+   worker. The FILE is untouched at 9:16, so this is one token to undo. */
+.svc-rail{--rail-ratio:4/5}
+.svc-frame video{display:block;width:100%;aspect-ratio:var(--rail-ratio);object-fit:cover}
+/* A rail frame may be a STILL as well as a clip (headlight has no video in the
+   library at all). Same box, same ratio, same cover -- so a still and a clip are
+   interchangeable in the rail and nothing else has to know which it got. */
+.svc-frame img{display:block;width:100%;aspect-ratio:var(--rail-ratio);object-fit:cover}
+.svc-frame figcaption{margin-top:var(--space-3);font-family:var(--font-fact);
+  font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--nda-wine-lift)}
+
+/* ---- The before/after slider (headlight rail, 2026-09-11) ----------------
+   Vanilla port of a React "image comparison slider" reference (21st.dev). The
+   AFTER layer sits on top and is clipped off `--cmp` (0..100) from the left;
+   the line and its knob sit at the same value. main.js writes that value from
+   an invisible <input type=range> stretched over the whole frame, so the
+   control is a real slider: keyboard, touch, and a press anywhere jumps the
+   line there. Both layers are the same pixel size (tools/cut-headlight-
+   compare.py), so they align with no object-fit maths.
+   THREE THINGS THE REFERENCE WAS NOT FOLLOWED ON, each because a contract
+   outranks it: its rounded-xl and drop shadow are gone (design-direction.md:
+   radius 0, matte); its white round knob is a square wine chip (the site's
+   one radius exception is the gallery card, not this); and its AFTER layer
+   was on the LEFT -- here before is left and after is right, the order the
+   picker board used and the order a comparison is read in. */
+.cmp{position:relative;display:block;width:100%;aspect-ratio:var(--rail-ratio);
+  overflow:hidden;--cmp:50;user-select:none;-webkit-user-select:none;background:var(--nda-black)}
+.svc-media .cmp img{position:absolute;inset:0;width:100%;height:100%;aspect-ratio:auto;
+  object-fit:cover;pointer-events:none}
+.cmp .cmp-after{clip-path:inset(0 0 0 calc(var(--cmp) * 1%))}
+.cmp-line{position:absolute;top:0;bottom:0;left:calc(var(--cmp) * 1%);width:2px;margin-left:-1px;
+  background:var(--nda-paint-white);pointer-events:none;
+  display:flex;align-items:center;justify-content:center}
+.cmp-knob{display:flex;align-items:center;justify-content:center;flex:none;width:36px;height:36px;
+  background:var(--color-accent);color:var(--color-on-accent);border:1px solid var(--nda-paint-white);
+  transition:transform .2s ease-out}
+.cmp.is-drag .cmp-knob{transform:scale(1.08)}
+/* the control: a real range input, invisible, covering the frame. touch-action
+   pan-y hands vertical swipes to the page so a phone can still scroll over it. */
+.cmp-ctl{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;
+  cursor:ew-resize;touch-action:pan-y;-webkit-appearance:none;appearance:none;background:none}
+.cmp-ctl::-webkit-slider-thumb{-webkit-appearance:none;width:44px;height:100%}
+.cmp-ctl::-moz-range-thumb{width:44px;height:100%;border:0}
+.cmp:has(.cmp-ctl:focus-visible) .cmp-knob{outline:2px solid var(--color-ring);outline-offset:3px}
+.cmp-cap-nojs{display:none}
+/* NO JS: the pair stacks, before above and after below, and the caption says so */
+html:not(.js) .cmp{aspect-ratio:auto}
+html:not(.js) .svc-media .cmp img{position:static;height:auto;aspect-ratio:var(--rail-ratio)}
+html:not(.js) .cmp .cmp-after{clip-path:none;margin-top:var(--space-2)}
+html:not(.js) .cmp-line,html:not(.js) .cmp-ctl,html:not(.js) .cmp-cap-js{display:none}
+html:not(.js) .cmp-cap-nojs{display:inline}
+@media(prefers-reduced-motion:reduce){.cmp-knob{transition:none}}
+
+/* Under 760px there is no right column at all. The rail rejoins the flow after
+   the prose and drops Frame B rather than stacking two videos on a phone. */
+@media(max-width:760px){
+  .svc-rail{position:static;width:auto;right:auto;
+    max-width:1200px;margin:0 auto var(--space-7);padding:0 var(--space-5)}
+  .svc-frame.a{position:static}
+  .svc-frame.b{display:none}
+}
+
+/* The curtain: every section after the chapter paints over the rail's overhang
+   and scrolls up to wipe it away. Opaque background is load-bearing -- without
+   it the videos show through. */
+.svc-chapter ~ .section,.svc-chapter ~ .book-band{position:relative;z-index:5;
+  background:var(--nda-black)}
+
+/* ---- Phone mockup 2026-08-08 ---------------------------------------------
+   Vanilla port of the React/shadcn phone-mockup Fahad supplied. No device
+   image asset: the handset is drawn in CSS so it stays sharp at any size and
+   costs nothing to load. Screen is 9:19.5, the real iPhone ratio, which is
+   also what the source footage already is -- these were shot on a phone.
+   Liquid glass stays on the shell, matching the earlier round. ------------ */
+.phone{position:relative;width:100%;margin:0}
+.phone-body{
+  position:relative;border-radius:38px;padding:9px;
+  background:linear-gradient(160deg,#2a2c2c,#131515 42%,#212323);
+  box-shadow:0 0 0 1px rgba(238,255,255,.16),
+             inset 0 1px 0 rgba(255,255,255,.22),
+             0 18px 46px rgba(0,0,0,.62);
+}
+.phone-screen{
+  position:relative;border-radius:30px;overflow:hidden;
+  aspect-ratio:9/19.5;background:var(--nda-black);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.85);
+}
+.phone-screen video,.phone-screen img{width:100%;height:100%;object-fit:cover;
+  display:block}
+/* dynamic island */
+.phone-body::after{content:"";position:absolute;top:19px;left:50%;
+  transform:translateX(-50%);width:30%;height:19px;border-radius:11px;
+  background:#000;z-index:2;pointer-events:none}
+/* side buttons */
+.phone-body::before{content:"";position:absolute;right:-2px;top:23%;
+  width:2px;height:9%;border-radius:2px;background:rgba(238,255,255,.22)}
+.phone-cap{margin-top:var(--space-3);text-align:center;
+  font-family:var(--font-fact);font-size:10.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--nda-wine-lift)}
+
+/* ---- Phone mockup deck 2026-08-08 (3rd round) ----------------------------
+   Interior "Previous work". Vanilla port of solaceui's "Phone Mockups 1"
+   (21st.dev) — an auto-rotating handset carousel. The phone is the VIEWER,
+   not the tile: ONE device holds the picture and the work rotates through it,
+   flanked by two receded ghost handsets showing what is coming and what just
+   left. (The previous round made every photo its own phone tile; Fahad ruled
+   that out — the handset was for the rail, not for tiling.)
+
+   Motion is read off the component's own demo clip: on advance every item
+   interpolates toward its new slot at once — the centre shrinks toward ghost
+   size as its shell fades out, the incoming ghost grows and takes the shell
+   on. Not a slide. ~520ms, one soft ease, all of it CSS transitions on
+   transform/opacity so there is no rAF loop to stall.
+
+   Deviations from the source, and why:
+   - The source is a light Apple-store mockup. This site is matte black with a
+     wine accent, so the shell is drawn in the site's own palette.
+   - Controls are SQUARE, not the source's circles: the design contract locks
+     radius 0, and the existing .cf-nav buttons already set that precedent.
+     The handset itself keeps its radius — a square phone is not a phone.
+   - Auto-advance is OFF under prefers-reduced-motion, and the pause control
+     is real (WCAG 2.2.2 wants any auto-moving content stoppable).
+   ------------------------------------------------------------------------ */
+.pm{--pm-w:clamp(208px,25vw,290px);      /* centre handset body width */
+  --pm-gap:.60;                          /* ghost offset, as a fraction of --pm-w */
+  --pm-ghost:.84;                        /* ghost scale */
+  --pm-ease:cubic-bezier(.22,.61,.36,1);
+  width:100%}
+.pm-stage{position:relative;display:grid;place-items:center;
+  /* Reserved on the stage because every slide is absolutely positioned and so
+     contributes no height. The bezel is proportional (see .pm .phone-body), so
+     body = w * (1 - 2*.0388) * 19.5/9 + w * 2*.0388 = w * 2.0761. Deriving it
+     from a fixed 18px bezel instead leaves the stage 5px short at full size. */
+  min-height:calc(var(--pm-w) * 2.0761)}
+.pm-slide{position:absolute;top:0;left:50%;width:var(--pm-w);
+  transform:translateX(-50%);transform-origin:50% 50%;
+  transition:transform .52s var(--pm-ease),opacity .52s var(--pm-ease);
+  will-change:transform,opacity}
+/* Off-deck: parked behind the centre, invisible, so a wrap-around never flies
+   across the stage. Only prev/centre/next are ever given a visible slot. */
+.pm-slide{opacity:0;transform:translateX(-50%) scale(var(--pm-ghost));z-index:1}
+.pm-slide.is-prev{opacity:1;z-index:2;
+  transform:translateX(calc(-50% - var(--pm-gap) * var(--pm-w))) scale(var(--pm-ghost))}
+.pm-slide.is-next{opacity:1;z-index:2;
+  transform:translateX(calc(-50% + var(--pm-gap) * var(--pm-w))) scale(var(--pm-ghost))}
+.pm-slide.is-on{opacity:1;z-index:3;transform:translateX(-50%) scale(1)}
+/* What recedes is the PICTURE, not the device. Fading the whole ghost slide
+   took its handset with it and left three photos floating on black with no
+   frames -- in the source the ghost is a plainly visible grey phone holding a
+   washed-out screen, and that reading is the whole point of the layout. So the
+   ghost body stays fully opaque (and takes a brighter hairline than the matte
+   --color-border, which is invisible at this size against black), while only
+   the screen contents drop back. The lit shell belongs to whichever handset
+   currently holds the work, which is what makes an advance read as one device
+   handing over to another. */
+.pm-slide .phone-body{transition:background .52s var(--pm-ease),
+  box-shadow .52s var(--pm-ease)}
+.pm-slide:not(.is-on) .phone-body{background:var(--nda-black-raised);
+  box-shadow:0 0 0 1px rgba(238,255,255,.20)}
+.pm-slide:not(.is-on) .phone-body::after{opacity:.45}
+.pm-slide .phone-screen img{transition:opacity .52s var(--pm-ease),
+  filter .52s var(--pm-ease)}
+.pm-slide:not(.is-on) .phone-screen img{opacity:.34;filter:grayscale(.5)}
+
+/* Controls: prev · pause/play · next, square per the design contract. */
+.pm-controls{display:flex;justify-content:center;align-items:center;gap:10px;
+  margin-top:var(--space-4)}
+.pm-btn{width:40px;height:40px;display:grid;place-items:center;padding:0;
+  background:rgba(10,10,10,.72);border:1px solid var(--color-border);
+  color:var(--nda-paint-white);cursor:pointer;font-family:var(--font-fact);
+  font-size:15px;line-height:1;transition:background .2s}
+.pm-btn:hover{background:var(--nda-wine)}
+.pm-btn:focus-visible{outline:2px solid var(--nda-wine-lift);outline-offset:3px}
+.pm-cap{margin-top:var(--space-4);text-align:center;min-height:44px}
+.pm-title{font-family:var(--font-fact);font-size:12px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--nda-paint-white)}
+.pm-sub{margin-top:4px;font-family:var(--font-fact);font-size:11px;
+  letter-spacing:.1em;color:var(--nda-wine-lift)}
+.pm-dots{margin-top:14px;display:flex;justify-content:center;gap:8px;
+  flex-wrap:wrap}
+.pm-dot{width:7px;height:7px;padding:0;border:0;cursor:pointer;
+  background:var(--nda-paint-white);opacity:.28;transition:opacity .2s}
+.pm-dot.is-on{opacity:1;background:var(--nda-wine-lift)}
+/* Proportional bezel: a fixed 38px radius reads as a pebble once the handset
+   drops to its 208px floor. Multipliers land on the rail's already-tuned
+   9px/38px/30px/19px at 232px, so every handset on the page matches. */
+.pm .phone-body{padding:calc(var(--pm-w) * .0388);
+  border-radius:calc(var(--pm-w) * .1638)}
+.pm .phone-screen{border-radius:calc(var(--pm-w) * .1293)}
+.pm .phone-body::after{top:calc(var(--pm-w) * .0819);
+  height:calc(var(--pm-w) * .0819);border-radius:calc(var(--pm-w) * .0474)}
+.pm img{user-select:none;-webkit-user-drag:none}
+/* The handset stops shrinking at 208px but the stage keeps narrowing, so a
+   fixed .60 gap walks the ghosts off the screen -- measured at 375px the left
+   ghost sat 25px past the edge and the right one made the page scroll
+   sideways. Pulling the gap in tucks them further behind the centre, which is
+   the source's own look at small sizes anyway. Ghost outer edge sits at
+   gap*w + (w*.84)/2 from centre. Measured: no horizontal page overflow at any
+   width from 360 up. At 360 the ghosts do graze ~2px into the section's own
+   padding -- invisible, and not worth buying back by pulling them further
+   behind the centre than the layout wants. */
+@media(max-width:900px){.pm{--pm-gap:.46}}
+@media(max-width:600px){.pm{--pm-gap:.34}}
+/* Without JS every slide keeps the parked opacity:0 and the section is a blank
+   hole, so the rest state is composed in CSS first and phone-deck.js announces
+   itself with .is-live to take over. The slots chosen here are exactly the ones
+   the driver assigns at index 0 -- first slide centred, second as next, last as
+   prev -- so handing over animates nothing. Dead controls are worse than absent
+   ones, so they only appear once something is listening. */
+.pm:not(.is-live) .pm-slide:nth-child(1){opacity:1;z-index:3;
+  transform:translateX(-50%) scale(1)}
+.pm:not(.is-live) .pm-slide:nth-child(2){opacity:1;z-index:2;
+  transform:translateX(calc(-50% + var(--pm-gap) * var(--pm-w))) scale(var(--pm-ghost))}
+.pm:not(.is-live) .pm-slide:nth-last-child(1){opacity:1;z-index:2;
+  transform:translateX(calc(-50% - var(--pm-gap) * var(--pm-w))) scale(var(--pm-ghost))}
+.pm:not(.is-live) .pm-controls,.pm:not(.is-live) .pm-dots{display:none}
+@media(prefers-reduced-motion:reduce){
+  .pm-slide{transition:none;will-change:auto}
+  .pm-slide .phone-body{transition:none}
+}
+
+/* ---- Single frame: what a "gallery" becomes when only one photo survives.
+   Emitted by coverflow_html() when n == 1 (Fahad's ceramic cull 2026-08-16).
+   Deliberately NOT carousel-shaped: no controls, no pager, nothing implying
+   a second picture. 9:16 contained on the raised surface, same as .cf.tall,
+   so a portrait still sits in the page the way the rake's cards do.
+   Radius 0 and matte per the design contract. ---- */
+.single-frame{margin:0;display:flex;flex-direction:column;align-items:center}
+/* Same radius as the rakes, and from the same token. This is the ceramic page's
+   gallery — it is a single frame only because the cull left one photo, not
+   because it is a different kind of object. Leaving it square-cornered beside
+   three rounded galleries would read as a page nobody finished. */
+.single-frame img{display:block;width:min(320px,78vw);aspect-ratio:9/16;
+  object-fit:contain;background:var(--color-surface-raised);
+  border:1px solid var(--color-border);border-radius:var(--cf-radius,18px)}
+@media(max-width:560px){.single-frame img{border-radius:12px}}
+.single-frame figcaption{margin-top:12px;text-align:center;
+  font-family:var(--font-fact);font-size:12px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--nda-paint-white)}
+.single-frame .sf-sub{display:block;margin-top:4px;font-size:11px;
+  letter-spacing:.1em;text-transform:none;color:var(--nda-wine-lift)}
+
+/* ---- THE GRAFFITI WALL + CURSOR TORCH (site-wide, 2026-08-21) -----------
+   Fahad: "add this image as the background for each page... subtly visible
+   and then a spotlight effect on the cursor that when you move your mouse
+   over something, you see more of the graffiti".
+
+   THIS REVERSES THE 2026-08-08 "one flat black across every beat" RULING and
+   it is meant to. That ruling neutralised a graffiti field that lived on ONE
+   beat of ONE page; this is a site-wide ground the whole build now stands on,
+   which is a different proposition. The old `.graffiti-bg`/`.graffiti-lit`
+   pair and its portfolio-only torch are retired by this block — see home.css.
+
+   TWO LAYERS OF THE SAME PICTURE, PERFECTLY REGISTERED. `.base` is the
+   subtle always-on ground; `.lit` is the identical image at a much higher
+   opacity, revealed only through a radial mask that follows the pointer.
+   Because both layers carry the SAME url at the SAME size and position, the
+   torch cannot smear or double the artwork — it is one wall being lit, not a
+   second wall fading in. Two files, or two background-positions, and the
+   effect reads as a glowing blob instead of a torch beam.
+
+   THE MASK IS IN VIEWPORT COORDINATES, WHICH IS WHY EVERY INSTANCE IS
+   VIEWPORT-SIZED. `--gx`/`--gy` are written once on :root from clientX/
+   clientY (main.js), and every `.graf` on the page reads the same pair. A
+   mask resolves against its own element's box, so the instant a layer is not
+   viewport-aligned the beam lands in the wrong place — hence the home page's
+   per-beat instances are re-registered to the viewport rather than sized to
+   their beat (home.css + home.js).
+
+   Off-screen default (-999px) so the torch is dark until a real pointer
+   arrives: touch devices and keyboard users get the `.base` ground and no
+   stray highlight parked in a corner. ---- */
+.graf{position:fixed;inset:0;z-index:-1;pointer-events:none;
+  --graf-r:280px}
+/* THE WHOLE PICTURE, NOT A CROP OF IT (Fahad 2026-08-21: "too zoomed in, zoom
+   out so we can capture the full picture").
+
+   `auto 100%` SIZES BY HEIGHT, SO THE FULL VERTICAL EXTENT OF THE ARTWORK IS
+   ALWAYS ON SCREEN — every piece, top to bottom. `cover` did the opposite: the
+   artwork is portrait 941x1672 and the layer is a landscape viewport, so cover
+   scaled to WIDTH and threw away about two thirds of the image's height.
+
+   THE HORIZONTAL REPEAT IS THE PRICE, AND IT IS GEOMETRY, NOT A SETTING. At
+   viewport height the tile is 941/1672 as wide as it is tall — roughly 400px on
+   a 713px-tall window — so a 1280px screen shows about 3.2 of them. A 9:16
+   picture cannot simultaneously fill a 16:9 screen and show all of itself; the
+   only real fix is a landscape source. Until there is one, showing the whole
+   artwork and repeating beats showing a third of it once.
+
+   NOT MIRRORED TILES. Alternating a flipped copy would hide the seam perfectly
+   — it is the standard trick — but this collage is covered in LETTERING, and
+   mirrored lettering reads as a mistake, not as a pattern. A visible seam in a
+   wall of pasted-up panels is more honest than backwards text.
+
+   Source: `../01 - Hero/NDA Background.png` (3.3MB PNG, re-encoded to JPEG
+   here because this loads on all 25 pages). */
+/* [REVERTED 2026-08-22 — DO NOT REAPPLY WITHOUT FAHAD] THE WALL WAS SWAPPED FOR
+   A LANDSCAPE GARAGE DRAFT AND FAHAD REJECTED IT:
+   *"The whole site is using the wrong background ... Why was it replaced with
+   the hero page image? The request was to replace the video on the hero page
+   (collapsing car) with an image of the car, NOT to replace the background on
+   each page. Revert the change."*
+
+   WHAT WENT WRONG WAS A READING, NOT A JUDGEMENT. The instruction was "remove
+   the collapsing background for now and replace it with a single image, the
+   clearest one we have from all the drafts". "The collapsing background" is the
+   HERO's collapsing-car film. It was read as this wall — which does have a
+   documented repeat problem, and the comment above literally asks for a
+   landscape source — so the swap looked like the fix the file was requesting.
+   Two plausible referents, and the site-wide one was chosen without checking.
+
+   THE WORK BEHIND IT WAS SOUND AND IS KEPT ON RECORD, because the repeat
+   problem above is still open and someone will reach for this again:
+   `graffiti-draft-A.png` is 1376x768 (1.792) against a 16:9 viewport (1.778),
+   so `cover` fills any desktop from a SINGLE copy — no seam, no repetition, no
+   mirrored lettering. It was chosen by measurement, not by eye: four landscape
+   drafts (A, B, C, wine) cropped to the wall at 1:1 and scored for edge energy
+   — A 8.62, B 8.30, C 8.11, wine 7.54 — and A separates its lettering most
+   cleanly from the dark wall. It is also 119KB against the collage's 580KB and
+   mean luma 55 against 77, which can only ease the contrast cap below.
+   Its one real cost, and the likely reason Fahad spotted it instantly: the
+   draft contains the RETIRED garage-world hero's gold RS7, so the site-wide
+   ground became a picture of the old hero.
+   The encoded file stays at `assets/graffiti-wall-a.jpg`, unreferenced. Putting
+   it back is one url and one background shorthand — but it is a SITE-WIDE
+   GROUND, so it is Fahad's call and nobody else's (production-rules #68).
+
+   THE COLLAGE IS THE GROUND. Everything above this block is its reasoning. */
+.graf i{position:absolute;inset:0;display:block;
+  background:url('assets/graffiti-wall.jpg') 50% 0/auto 100% repeat-x;
+  /* grayscale: the palette is locked matte + wine, and the wall must not be able
+     to introduce a third colour whatever picture is dropped in here.
+     brightness: A CONTRAST CAP, AND IT IS DOING REAL WORK. The two layers stack,
+     so their combined alpha is .34 + .66*.07 = .386, and a pure-white area of
+     the artwork would composite to 10*(1-.386) + 255*.386 = 105 over the
+     #0a0a0a ground. Body text (--nda-mist #aab6b6) on rgb(105,105,105) is
+     3.5:1 — under the 4.5:1 floor, and this is a background that moves under
+     the reader's own cursor. Capping the source white point at .62 lands the
+     same stack at 67, measured 4.72:1 against a pure-white probe plate, which
+     is the worst case ANY artwork could produce.
+     MEASURED AGAINST THE REAL ARTWORK the ceiling is far lower: the brightest
+     ground pixel in a whole isolated frame with the torch parked is 51 (mean
+     13.4; 71% of the frame is under 16), which is 6.06:1 for body text. The
+     shipped picture is mostly black, so it never approaches the plate. THE CAP
+     IS STILL LOAD-BEARING — remove it and the same frame peaks at ~79, which
+     puts body text at 4.28:1, under the floor. There is headroom to raise it
+     (.78 would peak ~63 and still hold ~5.2:1) if the wall is ever wanted
+     louder; .62 is the value that reads as "subtly visible", which is what was
+     asked for.
+     THE CAP IS ON THE PICTURE, NOT ON THE TORCH, AND THAT IS THE POINT. Buying
+     the same headroom by lowering `.lit` would flatten the base:lit ratio from
+     3.4x to 2.7x — the ratio IS the reveal, and it is the thing that was asked
+     for. Dimming the source costs the base almost nothing (it is mostly ground
+     at 7%) and costs the beam only its excess. Re-derive this number if either
+     opacity below moves, and re-measure — the ground is #0a0a0a, not 0, and
+     leaving that term out of the arithmetic under-predicts the result by 6. */
+  filter:grayscale(1) brightness(.62)}
+/* Subtle by instruction. Raise these two numbers together, never one alone —
+   the gap between them IS the torch, and closing it kills the effect. Moving
+   either one changes the contrast arithmetic above. */
+.graf .base{opacity:.07}
+.graf .lit{opacity:.34;
+  -webkit-mask:radial-gradient(circle var(--graf-r) at var(--gx,-999px) var(--gy,-999px),
+    #000 0%,#000 16%,transparent 72%);
+  mask:radial-gradient(circle var(--graf-r) at var(--gx,-999px) var(--gy,-999px),
+    #000 0%,#000 16%,transparent 72%)}
+/* No pointer, no torch — a coarse pointer cannot hover, so the lit layer
+   would only ever flash under a tap. The ground stays. */
+@media(hover:none),(pointer:coarse){.graf .lit{display:none}}
+
+/* ---- THE SWEEP BUTTON (2026-08-22) ---------------------------------------
+   SUPERSEDED THE SAME DAY by `.btn` below (Fahad: "add this button instead").
+   Kept unreferenced, the way this repo parks superseded work — `sweep_btn()` is
+   still in generate.py and one call site restores it. NOTE WHAT THE SWAP COSTS:
+   the replacement is shadcn's base button, which has no effect in it beyond a
+   colour transition, so the two-layer slide and the skewed wipe are gone rather
+   than restyled. That was the ask; this note is so the trade is on the record.
+
+   Vanilla port of a React/Tailwind button Fahad supplied, with his standing
+   condition: "ensure it uses the same colour format and font as the website".
+   Same call as the coverflow rake, the phone deck and the full-screen menu —
+   NOTHING WAS INSTALLED. The source shipped as a shadcn component expecting
+   React, Tailwind and TypeScript; this site is generate.py emitting static HTML,
+   and pulling a build toolchain into it to obtain one button would cost the
+   whole stack to gain a hover effect that is four transitions.
+
+   WHAT THE COMPONENT ACTUALLY IS: two stacked copies of the same label. The
+   resting one rides up and out (-150%), the waiting one rides up into its place
+   (100% -> 0), and behind the second a SKEWED bar grows from nothing and
+   overshoots. Both copies carry the same word, which is what makes it safe on a
+   phone: a sticky :hover after a tap leaves the second layer showing, and the
+   second layer says the same thing.
+
+   THREE DELIBERATE DEVIATIONS FROM THE SOURCE, ALL FORCED BY THE DESIGN
+   CONTRACT (design-direction.md), and all of them are Fahad's "same colour
+   format" instruction applied rather than ignored:
+     - NO GRADIENT. The source fills with `bg-gradient-to-r from-[#070e41] to
+       [#263381]`. The contract is matte: no gradients, no shadows. Flat wine.
+     - NO RADIUS. `rounded-md` becomes 0. The contract locks radius 0, which is
+       the same ruling that made the phone deck's controls square.
+     - NO DARK-MODE PAIR. The source carries a `dark:` variant for every colour.
+       This site has one palette on one black ground; a second set of values
+       would be two sources of truth for a theme that does not exist.
+   The blues are gone entirely: border and sweep are the wine family, the label
+   is IBM Plex Mono at the site's button tracking, same as every other CTA.
+
+   KEYBOARD GETS THE ANIMATION TOO. The source fires on `group-hover` alone, so
+   a keyboard user tabbing to it saw a static box. :focus-visible drives the
+   identical state here.
+
+   THE SECOND LABEL IS aria-hidden. It is a visual duplicate; without that a
+   screen reader announces the button's name twice. ---- */
+.btn-sweep{position:relative;display:inline-flex;align-items:center;
+  justify-content:center;overflow:hidden;height:48px;width:fit-content;
+  background:var(--color-accent);border:1px solid var(--color-border);
+  color:var(--color-on-accent);font-family:var(--font-fact);
+  font-size:var(--text-sm);letter-spacing:.08em;text-transform:uppercase;
+  cursor:pointer;text-decoration:none}
+.btn-sweep .rest{display:inline-flex;align-items:center;justify-content:center;
+  height:100%;padding:0 var(--space-6);
+  transition:transform .5s var(--nav-ease)}
+.btn-sweep .come{position:absolute;inset:0;display:inline-flex;align-items:center;
+  justify-content:center;transform:translateY(100%);
+  transition:transform .5s var(--nav-ease)}
+/* The skew does NOT change between states — it is 12deg at rest and 12deg on
+   hover, and only the scale moves (0 -> 1.5). That is what reads as a diagonal
+   bar sweeping through rather than a box growing. Overshooting to 1.5 is how
+   the fill reaches the corners of a box it is skewed inside. */
+.btn-sweep .wipe{position:absolute;inset:0;
+  background:var(--nda-wine-anchor);
+  transform:translateY(100%) skewY(12deg) scaleY(0);
+  transition:transform .5s var(--nav-ease)}
+.btn-sweep .lbl{position:relative;z-index:1}
+.btn-sweep:hover .rest,.btn-sweep:focus-visible .rest{transform:translateY(-150%)}
+.btn-sweep:hover .come,.btn-sweep:focus-visible .come{transform:translateY(0)}
+.btn-sweep:hover .wipe,.btn-sweep:focus-visible .wipe{
+  transform:translateY(0) skewY(12deg) scale(1.5)}
+.btn-sweep:focus-visible{outline:2px solid var(--color-ring);outline-offset:3px}
+/* REDUCED MOTION KEEPS THE FEEDBACK AND DROPS THE TRAVEL — the site's standing
+   doctrine. `transition:none` alone would not do it: the layers would still
+   SWAP, just instantly, which is a harsher version of the same movement. The
+   resting label stays put and the button answers with colour instead. */
+@media(prefers-reduced-motion:reduce){
+  .btn-sweep .rest,.btn-sweep .come,.btn-sweep .wipe{transition:none}
+  .btn-sweep:hover .rest,.btn-sweep:focus-visible .rest{transform:none}
+  .btn-sweep .come{display:none}
+  .btn-sweep:hover,.btn-sweep:focus-visible{background:var(--nda-wine-anchor)}
+}
+
+/* ---- THE BUTTON SYSTEM (2026-08-22) ---------------------------------------
+   Vanilla port of shadcn's base `Button` (cva variants + sizes), supplied by
+   Fahad to replace the sweep button, under his standing condition that it use
+   the site's own colour format and font. Nothing was installed: the source
+   wants React, Tailwind, class-variance-authority and @radix-ui/react-slot, and
+   this repo is generate.py emitting static HTML.
+
+   WHAT WAS ACTUALLY WORTH PORTING HERE IS THE SYSTEM, NOT THE BUTTON. The
+   source has no effect in it at all — it is `transition-colors` and a set of
+   named variants. Its value is that ONE definition covers every button on a
+   site, and this site had the opposite: `.hero .cta`, `.claim .cta`,
+   `.book-band .channels a`, `.beat-book .channels a` and `.dock a` each redeclare
+   the same four properties with their own numbers. This block is where that
+   consolidation can now happen.
+
+   VARIANT MAP — shadcn's theme names resolved to NDA's locked palette:
+     default    -> wine fill, paint-white label. The primary CTA.
+     secondary  -> raised surface, paint-white label. RENDERED, IT IS NEARLY
+                   THE SAME BUTTON AS `outline`, and that is the palette rather
+                   than the port: the raised surface is #111312 against a
+                   #0a0a0a ground — a seven-step lift that all but disappears at
+                   button size. The honest set on this site is default /
+                   outline / ghost / link. Giving secondary a distinct fill
+                   would mean a sixth colour on a locked five-colour contract,
+                   which needs sourcing (production-rules #56), not picking.
+     outline    -> transparent, hairline border, fills on hover.
+     ghost      -> nothing until hover.
+     link       -> the wine LIFT (not the wine), because small text on black
+                   needs the lift to clear contrast; the fill wine does not.
+
+   `destructive` IS DELIBERATELY ABSENT. It maps to a red this palette does not
+   contain, and inventing one would put a sixth colour on a locked five-colour
+   contract. There is also nothing on this site to destroy — no account, no
+   delete. If a destructive action ever exists, it needs a sourced colour
+   (production-rules #56), not a guess.
+
+   TWO DEVIATIONS, THE SAME TWO AS EVERY OTHER PORT HERE:
+     - `rounded-md` -> 0. The contract locks radius 0.
+     - hover is a COLOUR STEP, not shadcn's `bg-primary/90`. On a black ground
+       90% opacity mixes the fill toward the BACKGROUND, so the button gets
+       darker on hover — backwards. The site's convention is wine -> wine-anchor,
+       which lightens.
+   The label is IBM Plex Mono, uppercase, .08em, matching every existing button
+   rather than shadcn's `text-sm font-medium`. That is the "same font" part of
+   the instruction. ---- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);
+  white-space:nowrap;border:1px solid transparent;
+  font-family:var(--font-fact);font-size:var(--text-sm);letter-spacing:.08em;
+  text-transform:uppercase;text-decoration:none;cursor:pointer;
+  transition:background-color .2s,color .2s,border-color .2s}
+.btn:disabled,.btn[aria-disabled="true"]{pointer-events:none;opacity:.5}
+
+/* variants */
+.btn-default{background:var(--color-accent);color:var(--color-on-accent);
+  border-color:var(--color-border)}
+.btn-default:hover{background:var(--nda-wine-anchor)}
+.btn-secondary{background:var(--color-surface-raised);color:var(--color-text);
+  border-color:var(--color-border)}
+.btn-secondary:hover{background:var(--nda-wine-anchor)}
+.btn-outline{background:transparent;color:var(--color-text);
+  border-color:var(--color-border)}
+.btn-outline:hover{background:var(--color-surface-raised);
+  border-color:var(--color-accent-text)}
+.btn-ghost{background:transparent;color:var(--color-text)}
+.btn-ghost:hover{background:var(--color-surface-raised)}
+.btn-link{background:transparent;color:var(--color-accent-text);
+  padding-left:0;padding-right:0;text-transform:none;letter-spacing:normal;
+  font-family:var(--font-body)}
+.btn-link:hover{text-decoration:underline;text-underline-offset:4px}
+
+/* sizes — shadcn's h-9/h-10/h-11 resolved onto this site's existing heights
+   (the menu button is 36, the dock 45, so 36/44/52 sits in the same family
+   rather than importing Tailwind's scale wholesale) */
+.btn-sm{height:36px;padding:0 var(--space-4)}
+.btn-md{height:44px;padding:0 var(--space-5)}
+.btn-lg{height:52px;padding:0 var(--space-6)}
+.btn-icon{height:44px;width:44px;padding:0}
+.btn-icon svg{width:18px;height:18px;display:block}
+@media(prefers-reduced-motion:reduce){.btn{transition:none}}
+
+/* ---- The owner's portrait on the About page (2026-08-22). Two columns so
+   the picture sits BESIDE the opening story rather than above it: stacked, a
+   950px-tall portrait pushes the first words of the page below the fold, and
+   this page's job is the story.
+
+   The portrait is the only image on the page, so it carries no gallery
+   treatment — a plain frame, radius 0, matte, per the design contract.
+
+   SOURCE IS UNCONFIRMED and tracked in the brief's placeholder-fact list;
+   see the note in generate.py's about body. ---- */
+/* `align-content:start` is doing real work: the picture is taller than the
+   heading and paragraph together, so without it the two text ROWS stretch to
+   share the portrait's height and the paragraph drifts half a column away
+   from the heading it belongs to. Packed to the top, they stay a unit and
+   the extra height falls below them where it belongs.
+   Row gap is smaller than the column gap for the same reason — 40px between
+   a heading and its own paragraph reads as two blocks, not one. */
+/* TWO CELLS, NOT FOUR. The copy is wrapped in `.owner-copy` so the row is
+   simply picture | text. The obvious build -- leaving the h2 and the prose as
+   separate grid children and spanning the picture across both rows -- does
+   not work and is worth recording: a spanning item FORCES the rows it covers
+   to grow to its height, so the two text rows split a 950px portrait between
+   them and the paragraph drifts half a column from its own heading.
+   `align-content:start` cannot rescue it either, because that only
+   distributes FREE space and a spanning item leaves none. */
+.owner-intro{display:grid;grid-template-columns:380px minmax(0,1fr);
+  gap:var(--space-6);align-items:start}
+.owner-shot{margin:0;border:1px solid var(--color-border);
+  background:var(--color-surface-raised)}
+.owner-shot img{display:block;width:100%;height:auto}
+@media(max-width:860px){
+  .owner-intro{grid-template-columns:minmax(0,1fr);gap:var(--space-5)}
+  .owner-shot{max-width:420px}
+}
+
+/* ---- THE DETAILED RAKE CAPTION (2026-08-22) ------------------------------
+   Fahad's reference screenshot: a large item name, a muted line under it, then
+   a label/value list of the item's details. Built for the Full Treatment
+   gallery ("All details of the car should be mentioned below").
+
+   OPT-IN, VIA `.detailed`. Five galleries share `coverflow_html()` and four of
+   them share the `.tall` variant, so hanging this off `.tall` would have
+   restyled the ceramic, paint, exterior and interior rakes as collateral. A
+   rake earns `.detailed` only by carrying facts.
+
+   THE CARD SHAPE IS NOT THE REFERENCE'S AND CANNOT BE. Those are square album
+   covers with a generous radius; these are 9:16 photographs of customers' cars
+   under `contain`, and both halves of that are standing rulings — the design
+   contract locks radius 0, and this gallery must never crop (commit 692666f;
+   the 34 frames are hand-picked and hand-trimmed, and the plate-retouch queue
+   is keyed to these exact filenames). Squaring them would crop them. What is
+   ported is the CAPTION, which is what was actually asked for.
+
+   LINELESS, DELIBERATELY. The site's `.rows` block separates every row with a
+   hairline; the reference does not, and at three short rows the lines read as a
+   table of data rather than as a caption. Following the reference here. ---- */
+.cf.detailed .cf-cap{min-height:0;margin-top:var(--space-6)}
+.cf.detailed .cf-title{font-family:var(--font-body);font-weight:600;
+  font-size:clamp(19px,2.2vw,25px);letter-spacing:0;text-transform:none;
+  color:var(--color-text);line-height:1.2}
+.cf.detailed .cf-sub{margin-top:6px;font-family:var(--font-body);font-weight:400;
+  font-size:clamp(15px,1.5vw,18px);letter-spacing:0;text-transform:none;
+  color:var(--color-text-muted)}
+/* The gap under the name is the reference's, and it is doing work: it is what
+   separates "what this is" from "what is known about it". Close it up and the
+   two blocks read as one five-line caption. */
+.cf-facts{max-width:400px;margin:var(--space-7) auto 0;
+  display:flex;flex-direction:column;gap:var(--space-4)}
+.cf-fact{display:flex;align-items:baseline;justify-content:space-between;
+  gap:var(--space-5)}
+.cf-fact dt{font-family:var(--font-body);font-size:15px;
+  color:var(--color-text-muted)}
+/* Values are the FACT face, which is the site's own convention for numbers and
+   specs and is also what keeps a right-aligned column from ragging. */
+.cf-fact dd{font-family:var(--font-fact);font-size:14px;letter-spacing:.04em;
+  color:var(--color-text);text-align:right}
+@media(max-width:560px){
+  .cf-facts{max-width:none;padding:0 var(--space-4)}
+}
+
+/* ---- BLANK SLOTS IN A RAKE (2026-08-22) ----------------------------------
+   Fahad: "if no images available then just leave a blank spot in the carousel".
+   Every service page carries the same gallery; where the photographs do not
+   exist yet, the slot is left visibly empty rather than the carousel being left
+   off the page.
+
+   IT HAS TO READ AS EMPTY, NOT AS BROKEN OR AS LOADING. Three things do that:
+   the card keeps its exact box and radius so the rake's geometry is unbroken;
+   the surface is the raised black the letterboxed cards already use, so it is
+   plainly a surface and not a failed image; and a hairline cross-hatch marks it
+   as a reserved slot. NO SPINNER AND NO "LOADING" — nothing is on its way, and
+   a spinner that never resolves is worse than an empty box.
+
+   The caption still speaks: `pad_rake()` gives every blank the gallery's own
+   name and "Photo to come", so a blank slide announces what it is waiting for
+   rather than going silent. Its aria-label carries "no photograph yet". ---- */
+.cf-card.is-blank{background:var(--color-surface-raised);
+  border-style:dashed;border-color:var(--nda-line)}
+.cf-blank{position:absolute;inset:0;display:block;opacity:.5;
+  background-image:repeating-linear-gradient(45deg,
+    var(--nda-line) 0 1px, transparent 1px 11px)}
+
+/* ---- A WALL INSIDE AN OPAQUE SECTION (2026-08-22) ------------------------
+   `.svc-chapter ~ .section` paints an opaque black ground so the interior
+   page's sticky rail — which overhangs its chapter by 520px to keep its pin —
+   cannot paint over the gallery below it. That ground also hid the site-wide
+   graffiti wall, which is what read as "a big black background behind it".
+
+   The section stays opaque; only its GROUND changes from flat black to the
+   wall. Same geometry as the home page's curtain beats: viewport-HEIGHT,
+   translated by `--graf-y` so it registers with the fixed layer on the rest of
+   the page, and clipped by the section. `overflow:hidden` is what confines it. */
+.graf-host{position:relative;overflow:hidden}
+.graf-host > .graf{position:absolute;inset:auto;left:0;right:0;top:0;
+  height:var(--graf-vh,100vh);transform:translateY(var(--graf-y,0px))}
+/* REGISTERED NON-INHERITED (2026-09-11). The scroll registrars in main.js and
+   home.js write it on the wall itself every frame; left inherited, each write
+   would restyle the wall's layers with it for nothing. */
+@property --graf-y{syntax:'<length>';inherits:false;initial-value:0px}
+
+/* THE BOOKING BUTTONS POP ON HOVER (Fahad, 2026-09-03: "buttons should pop
+   when mouse is moved over them"). Lift and scale only -- the design contract
+   is matte, so no shadow is used to fake elevation.
+
+   GUARDED BEHIND no-preference, NOT just given a shorter transition: the pop
+   IS the movement, so under reduced motion there is nothing to slow down and
+   the existing colour change carries the whole hover state on its own.
+
+   :focus-visible gets it too, or the affordance exists for a mouse and not for
+   a keyboard -- the same pairing the nav and the FAQ already use. */
+@media (prefers-reduced-motion: no-preference) {
+  .book-band .channels a{transition:transform .18s cubic-bezier(.34,1.56,.64,1),
+                                    background-color .18s ease, border-color .18s ease}
+  .book-band .channels a:hover,
+  .book-band .channels a:focus-visible{transform:translateY(-3px) scale(1.05)}
+  .book-band .channels a:active{transform:translateY(-1px) scale(1.02)}
+
+  /* THE HIT TARGET MUST NOT MOVE (2026-09-12) — the same defect and the same
+     guard as `.beat-book .channels a` in home.css, which carries the full
+     account. This band is the one that ships on all 28 non-home pages, and it
+     measured WORSE than the home beat: 56 hover state changes with a motionless
+     cursor, across a two-pixel band rather than one, because the band's buttons
+     are shorter (45px vs 55px) so `scale(1.05)` gives back less of the 3px lift.
+     Keep the two in step — Fahad's 2026-09-03 ruling is that the beat and the
+     band are one control in two presentations. */
+  .book-band .channels a{position:relative}
+  .book-band .channels a::after{content:"";position:absolute;
+    left:0;right:0;top:0;bottom:-6px}
+}
