@@ -1,0 +1,88 @@
+/* =====================================================================
+   THE REVIEW OVERLAY — PREVIEW-ONLY CHROME (2026-09-14, Shah's review round).
+   ZEF's Build 18 overlay in NDA's palette; review.js carries the full account,
+   including why neither file can reach nodustallowed.ca.
+
+   check_ground() in generate.py scans this file like any page stylesheet:
+   it must never hide the graffiti wall, give the body a background, or
+   redefine a semantic colour token. It does none of those.
+   DO NOT NAME THE WALL'S CLASS IN A COMMENT HERE. The guard is a regex, not a
+   CSS parser: a mention of that selector followed anywhere later by
+   `display:none` (the `.rvroot [hidden]` rule below) reads as hiding the wall and
+   FAILS THE BUILD. That happened on the first build of this file (2026-09-14).
+   The guard was right to be strict; the comment was reworded, not the guard.
+
+   z ladder: the tab and General notes sit at 58, ABOVE the contact dock (55)
+   and BELOW the full-screen menu (60), so opening the menu covers them. The
+   pin layer and hint sit at 250 and the sheet at 300, above the lightbox
+   (100) and the coverflow arrows (200) — in review mode the capture-phase
+   click stops either of those opening anyway.
+
+   NOTHING HERE MOVES ON HOVER. Colour only: a hover style that moves its own
+   element strobes under a resting cursor (2026-09-12, the booking buttons).
+   ===================================================================== */
+/* `.rvroot`, never `.rv`: that is the site's scroll-reveal class (review.js). */
+.rvroot [hidden]{display:none!important}
+.rvtab,.rvgeneral{
+  position:fixed;right:0;writing-mode:vertical-rl;
+  background:var(--nda-wine);color:var(--nda-paint-white);
+  font-family:var(--font-fact);font-size:12px;font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;
+  padding:14px 9px;border:1px solid var(--nda-wine-lift);border-right:0;border-radius:0;
+  z-index:58;cursor:pointer;transition:background-color .2s ease,color .2s ease}
+.rvtab{top:50%;transform:translateY(-50%)}
+.rvgeneral{top:calc(50% + 84px);background:var(--nda-black-raised)}
+.rvtab:hover,.rvgeneral:hover{background:var(--nda-wine-anchor)}
+.rvtab[aria-pressed="true"]{background:var(--nda-paint-white);color:var(--nda-black)}
+.rvtab:focus-visible,.rvgeneral:focus-visible,.rvrow button:focus-visible{
+  outline:2px solid var(--nda-paint-white);outline-offset:2px}
+.rvhint{
+  position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:250;
+  width:max-content;max-width:min(92vw,480px);margin:0;
+  background:var(--nda-paint-white);color:var(--nda-black);
+  font:500 14px/1.45 system-ui,-apple-system,sans-serif;text-align:center;padding:10px 16px}
+body.rv-on main,body.rv-on footer,body.rv-on .dock{cursor:crosshair}
+.rvlayer{position:fixed;inset:0;z-index:250;pointer-events:none}
+.rvpin{
+  position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;padding:0;
+  border-radius:50%;border:2.5px solid var(--nda-paint-white);
+  background:var(--nda-wine-lift);pointer-events:auto;cursor:pointer}
+.rvpin.rvpin-mine{background:var(--nda-wine)}
+.rvsheet{
+  position:fixed;z-index:300;box-sizing:border-box;
+  background:var(--nda-black-raised);color:var(--nda-paint-white);
+  border:1px solid var(--nda-wine-lift);padding:18px 20px;
+  left:50%;bottom:0;transform:translateX(-50%);width:min(100vw,520px);
+  font-family:system-ui,-apple-system,sans-serif}
+/* right:52px, not ZEF's 18px: the tabs are 34px wide on this edge, so an 18px
+   inset laid the sheet over "General notes" (seen on the first screenshot). */
+@media(min-width:700px){.rvsheet{left:auto;right:52px;bottom:18px;transform:none;width:400px}}
+/* ON A PHONE THE TABS MUST FIT INSIDE THE PAGE'S 24px GUTTER. At desktop size
+   (34px) the Review tab sat over the right edge of the content — and on the
+   pricing page that is exactly where every price is right-aligned, so "$500"
+   read "$50" on the one page Shah most needs to check. Slimmed to ~21px, the
+   tab lives in the gutter and covers nothing. */
+@media(max-width:699px){
+  .rvtab,.rvgeneral{font-size:10px;letter-spacing:.1em;padding:10px 4px}
+  .rvgeneral{top:calc(50% + 66px)}
+}
+.rvwhere{margin:0 0 12px;font-size:13px;line-height:1.45;color:var(--nda-mist);
+  border-left:3px solid var(--nda-wine-lift);padding-left:10px}
+.rvlabel{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.rvsheet textarea{
+  display:block;width:100%;box-sizing:border-box;resize:vertical;
+  font:16px/1.5 system-ui,-apple-system,sans-serif;color:var(--nda-paint-white);
+  background:var(--nda-black);border:1px solid var(--nda-wine-lift);border-radius:0;padding:10px}
+.rvsheet textarea:focus{outline:2px solid var(--nda-paint-white);outline-offset:1px}
+.rvrow{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.rvrow button{
+  font-family:var(--font-fact);font-size:13px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;line-height:1;padding:12px 16px;border-radius:0;cursor:pointer;
+  background:transparent;color:var(--nda-paint-white);border:1px solid var(--nda-wine-lift);
+  transition:background-color .2s ease}
+.rvrow .rvsend{background:var(--nda-wine)}
+.rvrow button:hover{background:var(--nda-wine-anchor)}
+.rvrow button:disabled{opacity:.5;cursor:default}
+.rvstatus{margin:10px 0 0;font-size:13px;min-height:1em}
+.rvstatus.ok{color:var(--nda-paint-white);font-weight:600}
+.rvstatus.bad{color:var(--nda-mist)}

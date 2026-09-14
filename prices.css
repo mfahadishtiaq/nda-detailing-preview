@@ -1,0 +1,101 @@
+/* Prices — the pricing sheet.
+   Fahad 2026-08-22 supplied a reference (Borcelle "SERVICES & PRICING") with
+   "make it like the attached picture".
+
+   THE REFERENCE SUPPLIES THE LAYOUT. NDA SUPPLIES THE WORLD — the same split
+   ruled two rounds earlier on the products page ("the font, typography and
+   style should be homogenous with the rest of the website"). Taken: the stacked
+   display title, the two-line row with name and price sharing a baseline and
+   the description dropping beneath, the hairlines and the air between entries,
+   and the asterisked footnote. NOT taken: the reference's white ground and its
+   grotesque. Nothing here redefines a token, touches `body`, or reaches outside
+   this page's own components — production-rules #68, and the build enforces it.
+
+   PAGE-LOCAL, LIKE home.css AND products.css. Tokens only: no raw hex, no raw
+   px on colour or spacing (QA greps for it). The exception is the sub-12px fact
+   sizes the shipped components already use below the --text-sm floor. */
+
+/* ---------------------------------------------------------------- title --- */
+/* THE STACK IS THE COMPOSITION; THE SCALE AND THE FACE ARE THE SITE'S. The
+   reference sets its title as a two-line block that fills the measure. This is
+   the same `page_head` component and the same `--text-page` scale every other
+   page uses (the size Fahad kept when he reverted the ZEF treatment on
+   2026-08-21) — it is just given two wine bars instead of one. */
+.page-head.stacked .phead-title { display: flex; flex-direction: column;
+  align-items: flex-start; gap: var(--space-2); }
+/* Each bar hugs its own line, or the shorter line stretches to the longer one's
+   width and the block reads as a rectangle rather than as type. */
+.page-head.stacked .phead-title .kbar { align-self: flex-start; }
+.page-head.stacked .lead { margin-top: var(--space-5); }
+
+/* ----------------------------------------------------------- the list ----- */
+/* THE ROW IS A GRID, NOT A FLEX LINE, AND THAT IS THE WHOLE CHANGE. The old
+   `.row` put name, description and price on one baseline, so a description had
+   to compete with the price for the same horizontal space — which is why four
+   of the six rows had shipped without one at all. Two columns and two rows: the
+   name and the price share the top baseline, the description spans the left
+   column underneath. */
+.prows { border-top: 1px solid var(--color-border); }
+.prow {
+  display: grid; grid-template-columns: 1fr auto;
+  column-gap: var(--space-5); row-gap: var(--space-2);
+  padding: var(--space-6) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.prow-name {
+  grid-column: 1; grid-row: 1;
+  font-family: var(--font-display); font-weight: 400;
+  font-size: clamp(20px, 2.6vw, var(--text-xl));
+  line-height: 1; text-transform: uppercase; color: var(--color-text);
+}
+.prow-name:hover { color: var(--color-accent-text); }
+/* Display face, not the mono fact face, because in the reference the price is
+   the same weight and size as the name — a matched pair at the two ends of one
+   baseline. The mono `.pr` treatment is the site's convention for a price in a
+   dense list; this page is the opposite of dense. */
+.prow-price {
+  grid-column: 2; grid-row: 1; justify-self: end;
+  font-family: var(--font-display); font-weight: 400;
+  font-size: clamp(20px, 2.6vw, var(--text-xl));
+  line-height: 1; color: var(--color-text); white-space: nowrap;
+}
+/* THE PRICE IS WHITE, NOT THE WINE LIFT (Fahad 2026-08-22: "change the colour
+   for the prices as well, i dont like the light pinkish colour").
+   CHANGED ON THIS RULE, NOT ON THE TOKEN. `--color-accent-text` is
+   --nda-wine-lift #947c80 and it is used site-wide — the FAQ chevrons and
+   answer links, the service-rail captions, the coverflow captions, the nav
+   ordinals. Retinting the token to fix one page would have quietly restyled
+   all of them. --color-text is the site's strongest text colour and the price
+   is the fact the page exists to deliver, so it is also the right weight.
+   THE "FROM" STAYS QUIET ON PURPOSE, in the fact layer's mono at caption grey,
+   so the number is what the eye lands on and the qualifier reads as a label
+   rather than as part of the figure. */
+.prow-from {
+  font-family: var(--font-fact); font-size: .42em; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--color-caption);
+  /* .18em, not .5: there is now a REAL space in the markup between the label
+     and the figure, because "From$750" is one token to a screen reader and to
+     anyone copying the line. The margin only tops that space up to the gap the
+     design wants. */
+  margin-right: .18em; vertical-align: .3em;
+}
+.prow-desc {
+  grid-column: 1; grid-row: 2; max-width: 68ch;
+  color: var(--color-text-muted); font-size: 15px; line-height: 1.5;
+  /* At 62ch these were breaking "streak-" / "free" and "clear" / "coat" across
+     lines on a laptop. A slightly longer measure plus `pretty` (which the
+     browser uses to avoid short last lines) settles them without touching the
+     copy. */
+  text-wrap: pretty;
+}
+/* The price keeps its own column on a phone rather than wrapping under the
+   name: it is the shortest string on the row and the one people came for. */
+@media (max-width: 560px) {
+  .prow { column-gap: var(--space-4); padding: var(--space-5) 0; }
+  .prow-desc { font-size: 14px; }
+}
+
+/* ------------------------------------------------------------ footnote ---- */
+/* One caveat, stated once and in full, instead of "FROM" repeated six times.
+   It has to sit close enough to the list to read as its footnote and far enough
+   to not read as a seventh row. */
